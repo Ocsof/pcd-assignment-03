@@ -1,4 +1,4 @@
-package simulator
+package it.unibo.pcd.simulator.model
 
 object Chronometer {
   var running: Boolean = false

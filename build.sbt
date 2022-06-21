@@ -1,14 +1,17 @@
-name := "pcd-assignment-03"
+ThisBuild / version := "0.1.0-SNAPSHOT"
 
-version := "1.0"
+ThisBuild / scalaVersion := "3.1.2"
 
-scalaVersion := "3.1.1"
+lazy val root = (project in file("."))
+  .settings(
+    name := "pcd-assignment-03"
+  )
 
 lazy val akkaVersion = "2.6.19"
 lazy val akkaGroup = "com.typesafe.akka"
 libraryDependencies ++= Seq(
   akkaGroup %% "akka-actor-typed" % akkaVersion,
-  "ch.qos.logback" % "logback-classic" % "1.2.3",
   akkaGroup %% "akka-actor-testkit-typed" % akkaVersion % Test,
-  "org.scalatest" %% "scalatest" % "3.2.11" % Test
+  "ch.qos.logback" % "logback-classic" % "1.2.11",
+  "org.scalatest" %% "scalatest" % "3.2.12" % Test
 )

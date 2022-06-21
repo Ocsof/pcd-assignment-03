@@ -1,4 +1,4 @@
-package simulator
+package it.unibo.pcd.simulator.view
 
 import akka.actor.typed.ActorRef
 
@@ -7,6 +7,9 @@ import java.awt.{BorderLayout, Graphics, Graphics2D, RenderingHints}
 import javax.swing.{JButton, JFrame, JPanel, SwingUtilities}
 import scala.collection.mutable
 
+import it.unibo.pcd.simulator.model.model.{Body, Boundary}
+import it.unibo.pcd.simulator.behavior.RootActor.RootActorCommand
+import it.unibo.pcd.simulator.behavior.RootActor.RootActorCommand.*
 
 object View:
   def apply(controller: ViewController): ViewFrame = new ViewFrame(controller)
@@ -96,13 +99,14 @@ class ControlPanel(width: Int, height: Int, controller: ViewController) extends 
     })
 
 
-class ViewController(actor: ActorRef[Message]):
+class ViewController(root: ActorRef[RootActorCommand]):
+  import View.ViewFrame
   val view: ViewFrame = View(this)
 
   def actionPerformed(event: ActionEvent): Unit =
     event.getSource.asInstanceOf[JButton].getText match
-      case "PLAY" => actor ! PlaySimulation()
-      case "PAUSE" => actor ! PauseSimulation()
+      case "PLAY" => root ! StartSimulation
+      case "PAUSE" => root ! StopSimulation
       case "+" => view.updateScale(1.1)
       case "-" => view.updateScale(0.9)
       case _ => throw new IllegalStateException()
