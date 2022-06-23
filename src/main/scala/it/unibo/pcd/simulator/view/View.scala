@@ -105,7 +105,7 @@ class ViewController(root: ActorRef[RootActorCommand]):
 
   def actionPerformed(event: ActionEvent): Unit =
     event.getSource.asInstanceOf[JButton].getText match
-      case "PLAY" => root ! StartSimulation
+      case "PLAY" => root ! ResumeSimulation
       case "PAUSE" => root ! StopSimulation
       case "+" => view.updateScale(1.1)
       case "-" => view.updateScale(0.9)

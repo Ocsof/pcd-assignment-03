@@ -13,7 +13,6 @@ import it.unibo.pcd.simulator.behavior.RootActor.RootActorCommand.*
     enum BodyActorCommand:
       case ComputeVelocityRequest(bodies: mutable.Seq[Body], replyTo: ActorRef[RootActorCommand])
       case ComputePositionRequest(boundary: Boundary, replyTo: ActorRef[RootActorCommand])
-      case StopBodyActor
     export BodyActorCommand.*
     def apply(body: Body): Behavior[BodyActorCommand] = Behaviors.setup(new BodyActor(_, body))
 
@@ -28,8 +27,5 @@ import it.unibo.pcd.simulator.behavior.RootActor.RootActorCommand.*
         body.computeBodyPosition(boundary)
         ref ! ComputePositionResponse(body)
         Behaviors.same
-      case _ => //todo: perchè se metto StopBodyActor da errore? (in tutti gli altri casi stoppati)
-        context.log.debug("Received Stop")
-        Behaviors.stopped
       case _ => Behaviors.same //todo: che fare se ti arriva un'altro messaggio?
     }
