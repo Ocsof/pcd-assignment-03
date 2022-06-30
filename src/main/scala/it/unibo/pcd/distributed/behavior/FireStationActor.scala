@@ -6,16 +6,16 @@ import akka.actor.typed.scaladsl.Behaviors
 import it.unibo.pcd.distributed.model.{FireStation, Point2D, ZoneState}
 import it.unibo.pcd.distributed.model.ZoneState.ZoneState
 
-object FireStationActor {
 
-  trait FireStationCommand
-  case class Alarm() extends Message with FireStationCommand
-  case class Free() extends Message with FireStationCommand
-  //todo: implementare il tipo di messaggio "Richiesta di stato zona": StateRequestMessage
-  case class RequestState(replyTo: ActorRef[StateRequestMessage]) extends Message with FireStationCommand
+trait FireStationCommand
+case class Alarm() extends Message with FireStationCommand
+case class Free() extends Message with FireStationCommand
+//todo: implementare il tipo di messaggio "Richiesta di stato zona": StateRequestMessage
+case class RequestState(replyTo: ActorRef[StateRequestMessage]) extends Message with FireStationCommand
 
-  val fireStationService: ServiceKey[FireStationCommand] = ServiceKey[FireStationCommand]("fireStationService")
+val fireStationService: ServiceKey[FireStationCommand] = ServiceKey[FireStationCommand]("fireStationService")
 
+object FireStationActor:
   def apply(firestation: FireStation): Behavior[FireStationCommand | Receptionist.Listing] =
     Behaviors.setup[FireStationCommand | Receptionist.Listing](ctx => {
         ctx.system.receptionist ! Receptionist.Register(fireStationService, ctx.self)
@@ -38,4 +38,4 @@ object FireStationActor {
               Behaviors.stopped
         })
     })
-}
+

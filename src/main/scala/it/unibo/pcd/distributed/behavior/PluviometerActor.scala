@@ -11,7 +11,7 @@ import scala.util.Random
 
 sealed trait PluviometerCommand
 case class Update() extends Message with PluviometerCommand
-case class ListingResponse(listing: Receptionist.Listing) extends PluviometerCommand
+private case class ListingResponse(listing: Receptionist.Listing) extends PluviometerCommand
 
 val pluviometerService = ServiceKey[PluviometerCommand]("pluviometerService")
 
