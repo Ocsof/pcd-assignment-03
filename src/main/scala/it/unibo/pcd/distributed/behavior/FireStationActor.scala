@@ -1,41 +1,41 @@
 package it.unibo.pcd.distributed.behavior
 
-import akka.actor.typed.Behavior
+import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
-import it.unibo.pcd.distributed.model.Point2D
+import it.unibo.pcd.distributed.model.{FireStation, Point2D, ZoneState}
+import it.unibo.pcd.distributed.model.ZoneState.ZoneState
 
 object FireStationActor {
-  enum State:
-    case Free
-    case Alarm
 
   trait FireStationCommand
-  case class Alarm(zoneId: Int) extends Message with FireStationCommand
-  case class Free(zoneId: Int) extends Message with FireStationCommand
-  case class RequestState() extends Message with FireStationCommand
+  case class Alarm() extends Message with FireStationCommand
+  case class Free() extends Message with FireStationCommand
+  //todo: implementare il tipo di messaggio "Richiesta di stato zona": StateRequestMessage
+  case class RequestState(replyTo: ActorRef[StateRequestMessage]) extends Message with FireStationCommand
 
-  def apply(position: Point2D,
-            zoneId: String,
-            state: State): Behavior[FireStationCommand | Receptionist.Listing] =
+  val fireStationService: ServiceKey[FireStationCommand] = ServiceKey[FireStationCommand]("fireStationService")
+
+  def apply(firestation: FireStation): Behavior[FireStationCommand | Receptionist.Listing] =
     Behaviors.setup[FireStationCommand | Receptionist.Listing](ctx => {
+        ctx.system.receptionist ! Receptionist.Register(fireStationService, ctx.self)
         Behaviors.receiveMessage(msg => {
           msg match
             case Alarm() =>
-              println("Alarm received in zone "+ zoneId)
-              FireStationActor(position, zoneId, State.Alarm)
+              println("Alarm received in zone "+ firestation.zoneId)
+              FireStationActor(FireStation(firestation, ZoneState.Alarm))
 
             case Free() =>
-            case Receptionist.Listing(stations) =>
-              Behaviors.same
+              println("Free zone "+ firestation.zoneId)
+              FireStationActor(FireStation(firestation, ZoneState.Free))
 
-            case _ =>
-              println("Tutto regolare Update")
-              timers.startSingleTimer(Update(), 5000.millis)
+            case RequestState(replyTo) =>
+              ctx.log.debug("RequestState")
+              replyTo ! ResponseState(firestation)
               Behaviors.same
-            // caso di errore futuro da gestire...
-            case FoundFireStationsToSendAlarmTo =>
-            case other => Behaviors.stopped
+            case _ =>
+              println("Error")
+              Behaviors.stopped
         })
     })
 }

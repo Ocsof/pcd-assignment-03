@@ -6,7 +6,9 @@ import scala.util.Random
 import com.typesafe.config.{Config, ConfigFactory}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Behavior}
-import it.unibo.pcd.distributed.behavior.PluviometerActor
+import it.unibo.pcd.distributed.behavior.FireStationActor.Free
+import it.unibo.pcd.distributed.behavior.{FireStationActor, PluviometerActor}
+import it.unibo.pcd.distributed.model.FireStation
 
 object App {
 
@@ -36,8 +38,10 @@ object App {
     val random: Random = Random(System.currentTimeMillis())
     var zoneID = 0
     zones.foreach(x => {
-        fireStations = FireStation(zoneID,
-          Point2D(random.nextInt(x.width - 100) + x.x0 + 50, random.nextInt(x.height - 100) + x.y0 + 50)) :: fireStations
+        fireStations = FireStation(
+           Point2D(random.nextInt(x.width - 100) + x.x0 + 50, random.nextInt(x.height - 100) + x.y0 + 50) ,
+           zoneID,
+          ZoneState.Free) :: fireStations
         zoneID = zoneID + 1
     })
     fireStations.reverse
@@ -53,15 +57,15 @@ object App {
     val zones: List[Zone] = generateZones(rows, columns, Zone(0, 0, width / columns, height / rows))
     val pluviometers: List[Pluviometer] = generatePluviometers(zones)
     val fireStations: List[FireStation] = generateFireStations(zones)
-    zones.foreach(zone => {
-      startup(port = port)(PluviometerActor(zone))
+    pluviometers.foreach(pluviometer => {
+      startup(port = port)(PluviometerActor(pluviometer))
       port = port + 1
     })
-    fireStations.foreach(fireStations => {
-      startup(port = port)(FireStationActor()) //todo
+    fireStations.foreach(fireStation => {
+      startup(port = port)(FireStationActor(fireStation)) //todo
       port = port + 1
     })
-    
+
 
   }
 

@@ -3,41 +3,41 @@ package it.unibo.pcd.distributed.behavior
 import akka.actor.typed.scaladsl.*
 import akka.actor.typed.scaladsl.adapter.*
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
-import it.unibo.pcd.distributed.model.{Zone, Point2D}
+import it.unibo.pcd.distributed.model.{Pluviometer, Point2D, Zone}
 import akka.actor.typed.receptionist.*
+import it.unibo.pcd.distributed.behavior.FireStationActor.{FireStationCommand, fireStationService}
+import concurrent.duration.DurationInt
 import scala.util.Random
 
 sealed trait PluviometerCommand
 case class Update() extends Message with PluviometerCommand
+case class ListingResponse(listing: Receptionist.Listing) extends PluviometerCommand
 
+val pluviometerService = ServiceKey[PluviometerCommand]("pluviometerService")
 
 object PluviometerActor {
   def sensorRead: Double = Random.between(0.0, 10.0)
 
-  def apply(position: Point2D,
-            zoneId: String): Behavior[SensorCommand | Receptionist.Listing] =
-    Behaviors.setup[SensorCommand | Receptionist.Listing](ctx => {
-      ctx.system.receptionist ! Receptionist.Subscribe(ServiceKey[FireStationCommand]("fireStation" + zoneId), ctx.self)
+  def apply(pluviometer: Pluviometer): Behavior[PluviometerCommand | Receptionist.Listing] =
+    Behaviors.setup[PluviometerCommand | Receptionist.Listing](ctx => {
+      //todo registrarsi al receptionist
       Behaviors.withTimers(timers => {
-        Behaviors.receiveMessage(msg => {
+        Behaviors.receiveMessage[PluviometerCommand | Receptionist.Listing](msg => {
           msg match
             case Update() =>
               println("Update sensor")
-              sensorRead match
-                // se update > 7 --> errore
-                case _ > 7 => ctx.system.receptionist ! Receptionist.Find(ServiceKey[FireStationCommand]("fireStation" + zoneId), ctx.self)
-            // recepionist allarme a chi gestisce il messaggio allarme
+              if sensorRead > 7 then // se update > 7 --> allarme
+                ctx.system.receptionist ! Receptionist.Find(ServiceKey[FireStationCommand]("fireStation" + pluviometer.zoneId), ctx.self)
+                timers.startSingleTimer(Update(), 5000.millis)
+              Behaviors.same
+            // receptionist allarme a chi gestisce il messaggio allarme
             // se update < 7 --> tutto regolare
-            case Receptionist.Listing(stations) =>
+            case fireStationService.Listing(fireStations) =>
               Behaviors.same
 
             case _ =>
-              println("Tutto regolare Update")
-              timers.startSingleTimer(Update(), 5000.millis)
-              Behaviors.same
-            // caso di errore futuro da gestire...
-            case FoundFireStationsToSendAlarmTo =>
-            case other => Behaviors.stopped
+              println("Error")
+              Behaviors.stopped
         })
       })
 

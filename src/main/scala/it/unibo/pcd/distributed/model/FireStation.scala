@@ -1,14 +1,20 @@
 package it.unibo.pcd.distributed.model
 
-import it.unibo.pcd.distributed.model.FireStationState.FireStationState
+import it.unibo.pcd.distributed.model.ZoneState.ZoneState
 
+/*
 object FireStationState extends Enumeration:
    type FireStationState = Value
    val Free, Busy, Warned = Value
+*/
 
-case class FireStation(zoneId: Int, 
-                       position: Point2D,
-                       state: FireStationState):
+object ZoneState extends Enumeration:
+   type ZoneState = Value
+   val Free, Alarm = Value
 
-   def state_(newState: FireStationState): FireStation =
-      FireStation(zoneId, position, newState)
+case class FireStation(position: Point2D,
+                          zoneId: Int,
+                          state: ZoneState)
+object FireStation:
+   def apply(fireStation: FireStation, state: ZoneState): FireStation =
+      FireStation(fireStation.position, fireStation.zoneId, state)
