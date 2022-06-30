@@ -20,15 +20,16 @@ import it.unibo.pcd.simulator.behavior.ViewActor.ViewActorCommand.*
       case ComputeVelocityResponse(body: Body)
       case ComputePositionResponse(body: Body)
     export RootActorCommand.*
-    var responseCounter = 0
-    var vt = 0.0
-    var bodyActors: mutable.Seq[ActorRef[BodyActorCommand]] = mutable.Seq.empty
-    var view: Option[ActorRef[ViewActorCommand]] = None
+    
     def apply(simulation: Simulation, withGui: Boolean): Behavior[RootActorCommand] =
     Behaviors.setup(new RootActor(_, simulation, withGui))
 
   class RootActor(context: ActorContext[RootActor.RootActorCommand], val simulation: Simulation, val withGui: Boolean)
     extends AbstractBehavior[RootActor.RootActorCommand](context):
+    var responseCounter = 0
+    var vt = 0.0
+    var bodyActors: mutable.Seq[ActorRef[BodyActorCommand]] = mutable.Seq.empty
+    var view: Option[ActorRef[ViewActorCommand]] = None
     override def onMessage(msg: RootActor.RootActorCommand): Behavior[RootActor.RootActorCommand] = msg match {
       case StartSimulation =>
         import RootActor.*
@@ -38,7 +39,7 @@ import it.unibo.pcd.simulator.behavior.ViewActor.ViewActorCommand.*
           val bodyActor = context.spawn(BodyActor(simulation.bodies(n)), s"body-actor-$n")
           bodyActors = bodyActors :+ bodyActor
           bodyActor ! ComputeVelocityRequest(simulation.bodies, context.self)
-        Behaviors.same
+        this
 
       case StopSimulation =>
         this.onPause(simulation, withGui)
@@ -50,7 +51,7 @@ import it.unibo.pcd.simulator.behavior.ViewActor.ViewActorCommand.*
         if (responseCounter == simulation.bodies.size)
           responseCounter = 0
           bodyActors.foreach(bodyActor => bodyActor ! ComputePositionRequest(simulation.boundary, context.self))
-        Behaviors.same
+        this
       case ComputePositionResponse(result) =>
         import RootActor.*
         simulation.bodies(result.id).pos = result.pos
@@ -62,10 +63,10 @@ import it.unibo.pcd.simulator.behavior.ViewActor.ViewActorCommand.*
           if (simulation.iteration != 0)
             simulation.iteration = simulation.iteration - 1
             bodyActors.foreach(y => y ! ComputeVelocityRequest(simulation.bodies, context.self))
-            Behaviors.same
+            this
           else Behaviors.stopped
-        Behaviors.same
-      case _ => Behaviors.same
+        else this
+      case _ => this
     }
 
     def onPause(simulation: Simulation, gui: Boolean): Behavior[RootActor.RootActorCommand] =
