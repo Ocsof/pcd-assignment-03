@@ -10,34 +10,38 @@ import it.unibo.pcd.distributed.behavior.PluviometerActor
 
 object App {
 
-  def generateZones(rows: Int, columns: Int, zoneSize: Boundary): List[Boundary] =
-    var zones: List[Boundary] = List()
+  def generateZones(rows: Int, columns: Int, zoneSize: Zone): List[Zone] =
+    var zones: List[Zone] = List()
     for i <- 0 until columns do
       for j <- 0 until rows do
-        zones = Boundary(i * zoneSize.width, j * zoneSize.height, (i * zoneSize.width) + zoneSize.width - 1, (j * zoneSize.height) + zoneSize.height - 1) :: zones
+        zones = Zone(i * zoneSize.width, j * zoneSize.height, (i * zoneSize.width) + zoneSize.width - 1, (j * zoneSize.height) + zoneSize.height - 1) :: zones
     zones.reverse
-/*
-  def generateFireStations(zones: List[Zone]): List[FireStation] =
-    var fireStations: List[FireStation] = List()
-    val random: Random = Random(System.currentTimeMillis())
-    zones.foreach(x => fireStations = FireStation(x.id,
-      Point2D(random.nextInt(x.bounds.width - 100) + x.bounds.x0 + 50, random.nextInt(x.bounds.height - 100) + x.bounds.y0 + 50),
-      Free) :: fireStations)
-    fireStations.reverse
 
   def generatePluviometers(zones: List[Zone]): List[Pluviometer] =
     var pluviometers: List[Pluviometer] = List()
     val random: Random = Random(System.currentTimeMillis())
-    val circularZones = Iterator.continually(zones).flatten.take(6)
     var pluviometerId: Int = 0
-    circularZones.foreach(x => {
-      pluviometers = Pluviometer(x.id,
-        Point2D(random.nextInt(x.bounds.width - 100) + x.bounds.x0 + 50, random.nextInt(x.bounds.height - 100) + x.bounds.y0 + 50),
+    var zoneID = 0
+    zones.foreach(x => {
+      pluviometers = Pluviometer(zoneID,
+        Point2D(random.nextInt(x.width - 100) + x.x0 + 50, random.nextInt(x.height - 100) + x.y0 + 50),
         5) :: pluviometers
+      zoneID = zoneID + 1
       pluviometerId = pluviometerId + 1
     })
     pluviometers
-*/
+
+  def generateFireStations(zones: List[Zone]): List[FireStation] =
+    var fireStations: List[FireStation] = List()
+    val random: Random = Random(System.currentTimeMillis())
+    var zoneID = 0
+    zones.foreach(x => {
+        fireStations = FireStation(zoneID,
+          Point2D(random.nextInt(x.width - 100) + x.x0 + 50, random.nextInt(x.height - 100) + x.y0 + 50)) :: fireStations
+        zoneID = zoneID + 1
+    })
+    fireStations.reverse
+
 
   @main
   def main(): Unit = {
@@ -46,12 +50,18 @@ object App {
     val width = columns * 200
     val height = rows * 200
     var port: Int = 2551
-    val zones: List[Boundary] = generateZones(rows, columns, Boundary(0, 0, width / columns, height / rows))
-
+    val zones: List[Zone] = generateZones(rows, columns, Zone(0, 0, width / columns, height / rows))
+    val pluviometers: List[Pluviometer] = generatePluviometers(zones)
+    val fireStations: List[FireStation] = generateFireStations(zones)
     zones.foreach(zone => {
       startup(port = port)(PluviometerActor(zone))
-      port = port + 1;
+      port = port + 1
     })
+    fireStations.foreach(fireStations => {
+      startup(port = port)(FireStationActor()) //todo
+      port = port + 1
+    })
+    
 
   }
 
