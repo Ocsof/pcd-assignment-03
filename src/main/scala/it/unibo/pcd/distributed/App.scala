@@ -7,7 +7,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Behavior}
 import it.unibo.pcd.distributed.model.ZoneState.Free
-import it.unibo.pcd.distributed.behavior.{FireStationActor, PluviometerActor}
+import it.unibo.pcd.distributed.behavior.{FireStationActor, PluviometerActor, Update}
 import it.unibo.pcd.distributed.model.FireStation
 
 object App {
@@ -57,14 +57,19 @@ object App {
     val zones: List[Zone] = generateZones(rows, columns, Zone(0, 0, width / columns, height / rows))
     val pluviometers: List[Pluviometer] = generatePluviometers(zones)
     val fireStations: List[FireStation] = generateFireStations(zones)
-    pluviometers.foreach(pluviometer => {
-      startup(port = port)(PluviometerActor(pluviometer))
-      port = port + 1
-    })
+
+
     fireStations.foreach(fireStation => {
       startup(port = port)(FireStationActor(fireStation))
       port = port + 1
     })
+    println(fireStations.size.toString)
+
+    pluviometers.foreach(pluviometer => {
+      startup(port = port)(PluviometerActor(pluviometer)) ! Update()
+      port = port + 1
+    })
+    println(pluviometers.size.toString)
 
 
   }

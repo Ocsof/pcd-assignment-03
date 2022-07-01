@@ -22,28 +22,29 @@ object PluviometerActor {
   def apply(pluviometer: Pluviometer): Behavior[PluviometerCommand | Receptionist.Listing] =
     Behaviors.setup[PluviometerCommand | Receptionist.Listing](ctx => {
       //todo registrarsi al receptionist
-      ctx.system.receptionist ! Receptionist.Register(pluviometerService, ctx.self)
-      val fireStationZoneService = fireStationService(pluviometer.zoneId)
       Behaviors.withTimers(timers => {
-        Behaviors.receiveMessage[PluviometerCommand | Receptionist.Listing](msg => {
-          msg match
-            case Update() =>
-              ctx.log.info("Update sensor" + pluviometer.zoneId)
-              if sensorRead > 7 then // se update > 7 --> allarme
-                ctx.system.receptionist ! Receptionist.Find(fireStationZoneService, ctx.self)
-                timers.startSingleTimer(Update(), 5000.millis)
-              Behaviors.same
-            // receptionist allarme a chi gestisce il messaggio allarme
-            // se update < 7 --> tutto regolare
-            case fireStationZoneService.Listing(fireStations) =>
-              ctx.log.info("Alarm sent to fire station")
+        ctx.system.receptionist ! Receptionist.Register(pluviometerService, ctx.self)
+        val fireStationZoneService = fireStationService(pluviometer.zoneId)
+        Behaviors.receiveMessage {
+          case Update() =>
+            ctx.log.info("Update sensor" + pluviometer.zoneId)
+            if sensorRead > 7 then // se update > 7 --> allarme
+              ctx.system.receptionist ! Receptionist.Find(fireStationZoneService, ctx.self)
+              timers.startSingleTimer(Update(), 5000.millis)
+            Behaviors.same
+          // receptionist allarme a chi gestisce il messaggio allarme
+          // se update < 7 --> tutto regolare
+          case fireStationZoneService.Listing(fireStations) =>
+            if fireStations.nonEmpty then
               fireStations.last ! Alarm()
-              Behaviors.same
+              ctx.log.info("Alarm sent to fire station")
+            else ctx.log.info("No fire station in my zone")
+            Behaviors.same
 
-            case _ =>
-              ctx.log.error("Error")
-              Behaviors.stopped
-        })
+          case _ =>
+            ctx.log.error("Error")
+            Behaviors.stopped
+        }
       })
 
     })
