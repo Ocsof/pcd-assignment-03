@@ -21,6 +21,7 @@ object PluviometerActor {
   def apply(pluviometer: Pluviometer): Behavior[PluviometerCommand | Receptionist.Listing] =
     Behaviors.setup[PluviometerCommand | Receptionist.Listing](ctx => {
       //todo registrarsi al receptionist
+      ctx.system.receptionist ! Receptionist.Register(pluviometerService, ctx.self)
       Behaviors.withTimers(timers => {
         Behaviors.receiveMessage[PluviometerCommand | Receptionist.Listing](msg => {
           msg match
@@ -28,7 +29,7 @@ object PluviometerActor {
               println("Update sensor")
               if sensorRead > 7 then // se update > 7 --> allarme
                 ctx.system.receptionist ! Receptionist.Find(ServiceKey[FireStationCommand]("fireStation" + pluviometer.zoneId), ctx.self)
-                timers.startSingleTimer(Update(), 5000.millis)
+                timers.startSingleTimer(ctx.self ! Update(), 5000.millis)
               Behaviors.same
             // receptionist allarme a chi gestisce il messaggio allarme
             // se update < 7 --> tutto regolare
