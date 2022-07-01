@@ -5,7 +5,8 @@ import akka.actor.typed.scaladsl.adapter.*
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import it.unibo.pcd.distributed.model.{Pluviometer, Point2D, Zone}
 import akka.actor.typed.receptionist.*
-import it.unibo.pcd.distributed.behavior.FireStationActor.{FireStationCommand, fireStationService}
+import it.unibo.pcd.distributed.behavior.fireStationService
+import it.unibo.pcd.distributed.behavior.FireStationCommand
 import concurrent.duration.DurationInt
 import scala.util.Random
 
@@ -22,22 +23,25 @@ object PluviometerActor {
     Behaviors.setup[PluviometerCommand | Receptionist.Listing](ctx => {
       //todo registrarsi al receptionist
       ctx.system.receptionist ! Receptionist.Register(pluviometerService, ctx.self)
+      val fireStationZoneService = fireStationService(pluviometer.zoneId)
       Behaviors.withTimers(timers => {
         Behaviors.receiveMessage[PluviometerCommand | Receptionist.Listing](msg => {
           msg match
             case Update() =>
-              println("Update sensor")
+              ctx.log.info("Update sensor" + pluviometer.zoneId)
               if sensorRead > 7 then // se update > 7 --> allarme
-                ctx.system.receptionist ! Receptionist.Find(ServiceKey[FireStationCommand]("fireStation" + pluviometer.zoneId), ctx.self)
-                timers.startSingleTimer(ctx.self ! Update(), 5000.millis)
+                ctx.system.receptionist ! Receptionist.Find(fireStationZoneService, ctx.self)
+                timers.startSingleTimer(Update(), 5000.millis)
               Behaviors.same
             // receptionist allarme a chi gestisce il messaggio allarme
             // se update < 7 --> tutto regolare
-            case fireStationService.Listing(fireStations) =>
+            case fireStationZoneService.Listing(fireStations) =>
+              ctx.log.info("Alarm sent to fire station")
+              fireStations.last ! Alarm()
               Behaviors.same
 
             case _ =>
-              println("Error")
+              ctx.log.error("Error")
               Behaviors.stopped
         })
       })

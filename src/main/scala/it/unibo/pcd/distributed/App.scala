@@ -6,7 +6,7 @@ import scala.util.Random
 import com.typesafe.config.{Config, ConfigFactory}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Behavior}
-import it.unibo.pcd.distributed.behavior.FireStationActor.Free
+import it.unibo.pcd.distributed.model.ZoneState.Free
 import it.unibo.pcd.distributed.behavior.{FireStationActor, PluviometerActor}
 import it.unibo.pcd.distributed.model.FireStation
 
@@ -62,7 +62,7 @@ object App {
       port = port + 1
     })
     fireStations.foreach(fireStation => {
-      startup(port = port)(FireStationActor(fireStation)) //todo
+      startup(port = port)(FireStationActor(fireStation))
       port = port + 1
     })
 
@@ -76,6 +76,4 @@ object App {
       .withFallback(ConfigFactory.load(file))
     // Create an Akka system
     ActorSystem(root, "ClusterSystem", config)
-
-
 }
