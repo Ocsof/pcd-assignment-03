@@ -6,6 +6,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import it.unibo.pcd.distributed.model.{FireStation, Point2D, ZoneState}
 import it.unibo.pcd.distributed.model.ZoneState.*
 import it.unibo.pcd.distributed.behavior.StateResponse
+import akka.actor.typed.scaladsl.LoggerOps
 
 
 trait FireStationCommand
@@ -21,13 +22,12 @@ object FireStationActor:
     Behaviors.setup[FireStationCommand | Receptionist.Listing](ctx => {
         ctx.system.receptionist ! Receptionist.Register(fireStationService(firestation.zoneId), ctx.self)
         Behaviors.receiveMessage(msg => {
+          ctx.log.info2("{}: received message {}", ctx.self.path.name, msg)
           msg match
             case Alarm() =>
-              ctx.log.info("Alarm received in zone "+ firestation.zoneId)
               FireStationActor(FireStation(firestation, ZoneState.Alarm))
 
             case Free() =>
-              ctx.log.info("Free zone "+ firestation.zoneId)
               FireStationActor(FireStation(firestation, ZoneState.Free))
 
             case StateRequest(replyTo) =>
@@ -35,7 +35,7 @@ object FireStationActor:
               replyTo ! StateResponse(firestation)
               Behaviors.same
             case _ =>
-              ctx.log.error("Error")
+              ctx.log.info("Error")
               Behaviors.stopped
         })
     })
