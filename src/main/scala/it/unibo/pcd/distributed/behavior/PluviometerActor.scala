@@ -35,7 +35,7 @@ object PluviometerActor {
                 ctx.log.info("{}: alarm detected", ctx.self.path.name)
                 if zoneFireStations.nonEmpty then
                   zoneFireStations.foreach(_ ! Alarm())
-                timers.startSingleTimer(Update(), 5000.millis)
+              timers.startSingleTimer(Update(), 5000.millis)
               Behaviors.same
             // receptionist allarme a chi gestisce il messaggio allarme
             // se update < 7 --> tutto regolare

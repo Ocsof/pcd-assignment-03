@@ -18,7 +18,7 @@ object PluviometerGuardian {
         ctx.log.info2("{}: received message {}", ctx.self.path.name, msg)
         msg match
         case fireStationZoneService.Listing(listings) => {
-          ctx.log.info("{}: received fire station listing from receptionist", ctx.self.path.name)
+          ctx.log.info2("{}: received fire station listing from receptionist for zone {}", ctx.self.path.name, pluviometer.zoneId)
           pluviometerActor ! FireStationList(listings)
           Behaviors.same
         }

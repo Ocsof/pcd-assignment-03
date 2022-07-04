@@ -11,7 +11,10 @@ object FireStationGuardian {
       val fireStationActor = ctx.spawn(FireStationActor(fireStation), "FireStation" + fireStation.zoneId)
 
       Behaviors.receiveMessagePartial[Receptionist.Listing] {
-        case _ => Behaviors.stopped
+        case _ => 
+          ctx.log.info("Error")
+          Behaviors.stopped
+          
       }
     }.narrow
 }

@@ -53,17 +53,10 @@ object App {
     val columns = 2
     val width = columns * 200
     val height = rows * 200
-    var port: Int = 2551
+    var port: Int = 25551
     val zones: List[Zone] = generateZones(rows, columns, Zone(0, 0, width / columns, height / rows))
     val pluviometers: List[Pluviometer] = generatePluviometers(zones)
     val fireStations: List[FireStation] = generateFireStations(zones)
-
-
-    fireStations.foreach(fireStation => {
-      startup(port = port)(FireStationGuardian(fireStation))
-      port = port + 1
-    })
-    println(fireStations.size.toString)
 
     pluviometers.foreach(pluviometer => {
       startup(port = port)(PluviometerGuardian(pluviometer))
@@ -71,6 +64,11 @@ object App {
     })
     println(pluviometers.size.toString)
 
+    fireStations.foreach(fireStation => {
+      startup(port = port)(FireStationGuardian(fireStation))
+      port = port + 1
+    })
+    println(fireStations.size.toString)
 
   }
 

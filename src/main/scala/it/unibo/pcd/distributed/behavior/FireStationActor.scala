@@ -11,7 +11,7 @@ import akka.actor.typed.scaladsl.LoggerOps
 
 trait FireStationCommand
 case class Alarm() extends Message with FireStationCommand
-case class Free() extends Message with FireStationCommand
+case class FreeZone() extends Message with FireStationCommand
 //todo: implementare il tipo di messaggio "Richiesta di stato zona": StateRequestMessage
 case class StateRequest(replyTo: ActorRef[StateResponse[FireStation]]) extends Message with FireStationCommand
 
@@ -21,13 +21,14 @@ object FireStationActor:
   def apply(firestation: FireStation): Behavior[FireStationCommand | Receptionist.Listing] =
     Behaviors.setup[FireStationCommand | Receptionist.Listing](ctx => {
         ctx.system.receptionist ! Receptionist.Register(fireStationService(firestation.zoneId), ctx.self)
+
         Behaviors.receiveMessage(msg => {
           ctx.log.info2("{}: received message {}", ctx.self.path.name, msg)
           msg match
             case Alarm() =>
               FireStationActor(FireStation(firestation, ZoneState.Alarm))
 
-            case Free() =>
+            case FreeZone() =>
               FireStationActor(FireStation(firestation, ZoneState.Free))
 
             case StateRequest(replyTo) =>
