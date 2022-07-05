@@ -31,7 +31,7 @@ object FireStationActor:
 
             case FirestationViewList(listing) => //invio alla view che si è registrata il mio stato
               ctx.log.info2("{}: new set of Views of length {}", ctx.self.path.name, listing.size)
-              listing.foreach(_ ! FirestationState(firestation))
+              listing.foreach(_ ! FirestationState(firestation, ctx.self))
               Behaviors.same
 
             case _ =>

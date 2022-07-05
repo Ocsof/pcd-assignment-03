@@ -7,17 +7,22 @@ import com.typesafe.config.{Config, ConfigFactory}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Behavior}
 import it.unibo.pcd.distributed.model.ZoneState.Free
-import it.unibo.pcd.distributed.behavior.{FireStationActor, FireStationGuardian, PluviometerActor, PluviometerGuardian, Update, ViewActor}
+import it.unibo.pcd.distributed.behavior.{FireStationActor, FireStationGuardian, PluviometerActor, PluviometerGuardian, Update, ViewActor, ViewGuardian}
 import it.unibo.pcd.distributed.model.FireStation
 
 
 object App {
 
-  def generateZones(rows: Int, columns: Int, zoneSize: Zone): List[Zone] =
+  def generateZones(rows: Int, columns: Int, zoneBoundary: Boundary): List[Zone] =
     var zones: List[Zone] = List()
+    var zoneId: Int = 0
     for i <- 0 until columns do
       for j <- 0 until rows do
-        zones = Zone(i * zoneSize.width, j * zoneSize.height, (i * zoneSize.width) + zoneSize.width - 1, (j * zoneSize.height) + zoneSize.height - 1) :: zones
+        zones = Zone(zoneId,
+                     Boundary(i * zoneBoundary.width, j * zoneBoundary.height,
+                             (i * zoneBoundary.width) + zoneBoundary.width - 1,
+                             (j * zoneBoundary.height) + zoneBoundary.height - 1)) :: zones
+        zoneId = zoneId + 1
     zones.reverse
 
   def generatePluviometers(zones: List[Zone]): List[Pluviometer] =
@@ -27,7 +32,7 @@ object App {
     var zoneID = 0
     zones.foreach(x => {
       pluviometers = Pluviometer(zoneID,
-        Point2D(random.nextInt(x.width - 100) + x.x0 + 50, random.nextInt(x.height - 100) + x.y0 + 50),
+        Point2D(random.nextInt(x.width - 100) + x.boundary.x0 + 50, random.nextInt(x.height - 100) + x.boundary.y0 + 50),
         5) :: pluviometers
       zoneID = zoneID + 1
       pluviometerId = pluviometerId + 1
@@ -40,7 +45,7 @@ object App {
     var zoneID = 0
     zones.foreach(x => {
         fireStations = FireStation(
-           Point2D(random.nextInt(x.width - 100) + x.x0 + 50, random.nextInt(x.height - 100) + x.y0 + 50) ,
+           Point2D(random.nextInt(x.width - 100) + x.boundary.x0 + 50, random.nextInt(x.height - 100) + x.boundary.y0 + 50) ,
            zoneID,
           ZoneState.Free) :: fireStations
         zoneID = zoneID + 1
@@ -55,7 +60,7 @@ object App {
     val width = columns * 200
     val height = rows * 200
     var port: Int = 25551
-    val zones: List[Zone] = generateZones(rows, columns, Zone(0, 0, width / columns, height / rows))
+    val zones: List[Zone] = generateZones(rows, columns, Boundary(0, 0, width / columns, height / rows))
     val pluviometers: List[Pluviometer] = generatePluviometers(zones)
     val fireStations: List[FireStation] = generateFireStations(zones)
 
@@ -70,7 +75,7 @@ object App {
       port = port + 1
     })
     println(fireStations.size.toString)
-    startup(port = 1200)(ViewGuardian(width, height))
+    startup(port = 1200)(ViewGuardian(width, height, zones))
   }
 
   def startup[X](file: String = "cluster", port: Int)(root: => Behavior[X]): ActorSystem[X] =

@@ -2,45 +2,47 @@ package it.unibo.pcd.distributed.behavior
 
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
-import akka.actor.typed.scaladsl.Behaviors
-import it.unibo.pcd.distributed.model.{FireStation, Pluviometer}
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
+import it.unibo.pcd.distributed.model.{FireStation, Pluviometer, Zone}
+import it.unibo.pcd.distributed.view.View
 
 
 trait ViewActorCommand
 case class PluviometerState(pluviometer: Pluviometer) extends Message with ViewActorCommand
-case class FirestationState(fireStation: FireStation) extends Message with ViewActorCommand
+case class FirestationState(fireStation: FireStation, fireStationActor: ActorRef[FireStationCommand]) extends Message with ViewActorCommand
 case class AlarmTheView(pluviometer: Pluviometer) extends Message with ViewActorCommand
 
 val viewService: ServiceKey[ViewActorCommand] = ServiceKey("viewService")
 
-val view: View = Some(View(cityGrid.width + 600, cityGrid.height + 200, ctx.self))
 
-object ViewActor {
+class ViewActor(ctx: ActorContext[ViewActorCommand],
+                width: Int, height: Int, zones: List[Zone]) extends AbstractBehavior(ctx):
 
-  def apply(width: Int, height: Int,
-            pluviometers: Set[Pluviometer] = Set.empty,
-            firestations: Map[FireStation, ActorRef[FireStationCommand]] = Map.empty,
-            view: Option[View] = None): Behavior[ViewActorCommand] =
-    Behaviors.setup[ViewActorCommand](ctx => {
-      view = Some(View(width + 600, height + 200, ctx.self))
-      ctx.system.receptionist ! Receptionist.Register(viewService, ctx.self)
-      Behaviors.receiveMessage(msg => {
-        ctx.log.info("{}: received message {}", ctx.self.path.name, msg)
-        msg match
-          case PluviometerState(pluviometer) =>
-            val newPluviometers = pluviometers + pluviometer
-            
-            ViewActor(width, height, newPluviometers, firestations)
-          //aggiungi il pluviometro alla lista e ridisegna la gui
-          case FirestationState(fireStation) => //aggiungi la firestation alla lista e ridisegna la gui
+  val view: View = View(width, height, zones, ctx.self)
+  val pluviometers: Set[Pluviometer] = Set.empty
+  val firestations: Map[FireStation, ActorRef[FireStationCommand]] = Map.empty
 
-          case AlarmTheView(pluviometer: Pluviometer) => ???
+  ctx.system.receptionist ! Receptionist.Register(viewService, ctx.self)
+
+  override def onMessage(msg: ViewActorCommand): Behavior[ViewActorCommand] =
+    ctx.log.info("{}: received message {}", ctx.self.path.name, msg)
+    msg match
+      case PluviometerState(pluviometer) =>
+        //aggiungi il pluviometro alla lista e ridisegna la gui
+        val newPluviometers = pluviometers + pluviometer
+        view.updatePluviometer(pluviometer)
+
+      case FirestationState(fireStation, fireStationActor) => //aggiungi la firestation alla lista e ridisegna la gui
+        val newFirestations = firestations + (fireStation -> fireStationActor)
+        view.updateFireStation(fireStation)
+
+      case AlarmTheView(pluviometer: Pluviometer) => ???
+          /*
           case FreeFirestation(zoneId: Int) => fireStationService(zoneId)
           case FreeNotifiedByOtherGui() =>
           case _ =>
             ctx.log.info("Error")
             Behaviors.stopped
-      })
-    })
+          */
+      this
 
-}

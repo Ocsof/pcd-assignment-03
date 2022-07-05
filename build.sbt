@@ -16,4 +16,5 @@ libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.11",
   "org.scalatest" %% "scalatest" % "3.2.12" % Test,
   "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion,
+  "org.scala-lang.modules" %% "scala-swing" % "3.0.0"
 )

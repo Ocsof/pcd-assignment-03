@@ -1,8 +1,5 @@
 package it.unibo.pcd.distributed.model
 
-case class Zone(x0: Int,
-                y0: Int,
-                x1: Int,
-                y1: Int):
-  def width: Int = x1 - x0
-  def height: Int = y1 - y0
+case class Zone(zoneId: Int, boundary: Boundary):
+  def width: Int = boundary.x1 - boundary.x0
+  def height: Int = boundary.y1 - boundary.y0
