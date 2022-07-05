@@ -9,12 +9,17 @@ object FireStationGuardian {
   def apply(fireStation: FireStation): Behavior[Nothing] =
     Behaviors.setup[Receptionist.Listing] { ctx =>
       val fireStationActor = ctx.spawn(FireStationActor(fireStation), "FireStation" + fireStation.zoneId)
+      ctx.system.receptionist ! Receptionist.Subscribe(viewService, ctx.self)
 
       Behaviors.receiveMessagePartial[Receptionist.Listing] {
-        case _ => 
+        case viewService.Listing(listings) => {
+          ctx.log.info("{}: received new View Actor from receptionist", ctx.self.path.name)
+          fireStationActor ! FirestationViewList(listings)
+          Behaviors.same
+        }
+        case _ =>
           ctx.log.info("Error")
           Behaviors.stopped
-          
       }
     }.narrow
 }

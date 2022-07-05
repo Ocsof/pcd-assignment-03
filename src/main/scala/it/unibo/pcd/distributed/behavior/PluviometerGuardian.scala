@@ -10,9 +10,10 @@ object PluviometerGuardian {
   def apply(pluviometer: Pluviometer): Behavior[Nothing] =
     Behaviors.setup[Receptionist.Listing] { ctx =>
       val fireStationZoneService = fireStationService(pluviometer.zoneId)
-      val pluviometerActor = ctx.spawn(PluviometerActor(pluviometer, Set.empty), "Pluviometer"+pluviometer.zoneId)
+      val pluviometerActor = ctx.spawn(PluviometerActor(pluviometer, Set.empty, Set.empty), "Pluviometer"+pluviometer.zoneId)
       pluviometerActor ! Update()
       ctx.system.receptionist ! Receptionist.Subscribe(fireStationZoneService, ctx.self)
+      ctx.system.receptionist ! Receptionist.Subscribe(viewService, ctx.self)
 
       Behaviors.receiveMessagePartial[Receptionist.Listing]( msg => {
         ctx.log.info2("{}: received message {}", ctx.self.path.name, msg)
@@ -20,6 +21,11 @@ object PluviometerGuardian {
         case fireStationZoneService.Listing(listings) => {
           ctx.log.info2("{}: received fire station listing from receptionist for zone {}", ctx.self.path.name, pluviometer.zoneId)
           pluviometerActor ! FireStationList(listings)
+          Behaviors.same
+        }
+        case viewService.Listing(listings) => {
+          ctx.log.info2("{}: received fire station listing from receptionist for zone {}", ctx.self.path.name, pluviometer.zoneId)
+          pluviometerActor ! PluviometerViewList(listings)
           Behaviors.same
         }
         case _ => {
