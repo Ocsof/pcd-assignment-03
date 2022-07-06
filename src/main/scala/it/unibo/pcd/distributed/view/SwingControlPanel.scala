@@ -1,7 +1,7 @@
 package it.unibo.pcd.distributed.view
 
 import com.sun.java.accessibility.util.AWTEventMonitor.addWindowListener
-import it.unibo.pcd.distributed.model.{FireStation, Pluviometer, Zone}
+import it.unibo.pcd.distributed.model.{FireStation, Pluviometer, Zone, ZoneState}
 
 import java.awt.event.{WindowAdapter, WindowEvent}
 import java.awt.{Dimension, Graphics2D, RenderingHints}
@@ -18,7 +18,7 @@ object SwingControlPanel:
   def apply(view: View, zones: List[Zone]): SwingControlPanel = SwingControlPanelImpl(view, zones)
 
   private class SwingControlPanelImpl(view: View, zones: List[Zone]) extends Frame with SwingControlPanel:
-    val buttonsPanel: ButtonsPanel = ButtonsPanel(view)
+    val buttonsPanel: ButtonsPanel = ButtonsPanel(view, zones)
     val cityPanel: CityPanel = CityPanel(view.width, view.height, zones)
 
     title = "Control Panel"
@@ -40,6 +40,11 @@ object SwingControlPanel:
     override def updateFireStation(fireStation: FireStation): Unit =
       SwingUtilities.invokeLater(() => {
         cityPanel.updateFireStation(fireStation)
+        //todo: algoritmo per farsi restituire il button della zona della firestation, questo che ho fatto non credo sia bellino
+        val freeZone: String = "Free Zone " + fireStation.zoneId
+        val button = buttonsPanel.buttons.find(_.text == freeZone).get
+        if fireStation.state == ZoneState.Busy then
+          button.visible = true
         repaint()
       })
 
@@ -52,24 +57,28 @@ object SwingControlPanel:
   end SwingControlPanelImpl
 end SwingControlPanel
 
-sealed class ButtonsPanel(view: View) extends FlowPanel:
-  val buttonFix: Button = new Button{
-    text = "Fix Zone"
-    visible = false
-    action = new Action("Fix Zone"):
-      override def apply(): Unit =
-        visible = false
-        view.fixZonePressed()
-  }
-  val zoneIdLabel: Label = Label(s"Zone ${view.zoneId}")
-  contents += zoneIdLabel
-  contents += buttonFix
-
+sealed class ButtonsPanel(view: View, zones: List[Zone]) extends FlowPanel:
+  //mettiamo inizialmente i bottoni invisibili, e quando la firestation sarà in allarme allora
+  // li renderemo visibili -> vedi metodo updateFirestation()
+  var buttons: List[Button] = List.empty
+  zones.foreach(zone => {
+    val buttonText = "Free Zone ".concat(zone.zoneId.toString)
+    val buttonFix: Button = new Button{
+      text = buttonText
+      visible = false
+      action = new Action(buttonText): //quando liberiamo la zona rendiamo non visibile il bottone
+        override def apply(): Unit =
+          visible = false
+          view.freeZonePressed(zone.zoneId)
+    }
+    buttons = buttonFix :: buttons
+    contents += buttonFix
+  })
 end ButtonsPanel
 
 sealed class CityPanel(width: Int, height: Int, zones: List[Zone]) extends Panel:
   var fireStations: Set[FireStation] = Set()
-  val pluviometers: Set[Pluviometer] = Set()
+  var pluviometers: Set[Pluviometer] = Set()
 
   preferredSize = Dimension(width, height)
 
@@ -80,13 +89,14 @@ sealed class CityPanel(width: Int, height: Int, zones: List[Zone]) extends Panel
     g2.drawRect(0, 0, width - 1, height - 1)
     g2.setColor(java.awt.Color.BLUE)
     zones.foreach(zone => {
-      fireStations.filter(_.zoneId == zone.id).map(_.state) match
-        case ZoneState.Free => g2.setColor(java.awt.Color.GREEN)
-        case ZoneState.Busy => g2.setColor(java.awt.Color.RED)
-      g2.fillRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
+      val state = fireStations.find(_.zoneId == zone.zoneId).map(_.state)
+      state match
+        case Some(ZoneState.Busy) => g2.setColor(java.awt.Color.RED)
+        case _ => g2.setColor(java.awt.Color.GREEN)
+      g2.fillRect(zone.boundary.x0, zone.boundary.y0, zone.boundary.width, zone.boundary.height)
       g2.setColor(java.awt.Color.BLACK)
-      g2.drawString(s"ZONE ${zone.id}: ${zone.state.toString}", zone.bounds.x0 + 5, zone.bounds.y0 + 15)
-      g2.drawRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
+      g2.drawString(s"ZONE ${zone.zoneId}: ${state.toString}", zone.boundary.x0 + 5, zone.boundary.y0 + 15)
+      g2.drawRect(zone.boundary.x0, zone.boundary.y0, zone.boundary.width, zone.boundary.height)
     })
     g2.setColor(java.awt.Color.BLACK)
     pluviometers.foreach(pluviometer => g2.fillOval(pluviometer.position.x, pluviometer.position.y, 10, 10))

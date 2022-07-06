@@ -10,7 +10,7 @@ import akka.actor.typed.scaladsl.LoggerOps
 
 trait FireStationCommand
 case class AlarmFireStation() extends Message with FireStationCommand
-case class FreeZone() extends Message with FireStationCommand
+case class FreeZoneFirestation() extends Message with FireStationCommand
 case class FirestationViewList(listing: Set[ActorRef[ViewActorCommand]]) extends Message with FireStationCommand
 
 def fireStationService(zoneId: Int): ServiceKey[FireStationCommand] = ServiceKey("fireStationService" + zoneId)
@@ -24,9 +24,9 @@ object FireStationActor:
           ctx.log.info2("{}: received message {}", ctx.self.path.name, msg)
           msg match
             case AlarmFireStation() =>
-              FireStationActor(FireStation(firestation, ZoneState.Alarm))
+              FireStationActor(FireStation(firestation, ZoneState.Busy))
 
-            case FreeZone() =>
+            case FreeZoneFirestation() =>
               FireStationActor(FireStation(firestation, ZoneState.Free))
 
             case FirestationViewList(listing) => //invio alla view che si è registrata il mio stato

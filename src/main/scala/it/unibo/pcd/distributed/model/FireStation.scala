@@ -10,7 +10,7 @@ object FireStationState extends Enumeration:
 
 object ZoneState extends Enumeration:
    type ZoneState = Value
-   val Free, Alarm = Value
+   val Free, Busy = Value
 
 case class FireStation(position: Point2D,
                           zoneId: Int,

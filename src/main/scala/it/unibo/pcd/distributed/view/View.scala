@@ -2,7 +2,7 @@ package it.unibo.pcd.distributed.view
 
 import akka.actor.typed.ActorRef
 import akka.actor.typed.receptionist.Receptionist
-import it.unibo.pcd.distributed.behavior.ViewActorCommand
+import it.unibo.pcd.distributed.behavior.{FreeZone, ViewActorCommand}
 import it.unibo.pcd.distributed.model.{FireStation, Pluviometer, Zone}
 
 
@@ -11,8 +11,7 @@ trait View:
   def height: Int
   def updatePluviometer(pluviometer: Pluviometer): Unit
   def updateFireStation(fireStation: FireStation): Unit
-  def manageZonePressed(): Unit
-  def fixZonePressed(): Unit
+  def freeZonePressed(zoneId: Int): Unit
 
 object View:
   def apply(width: Int, height: Int, zones: List[Zone], viewActor: ActorRef[ViewActorCommand]): View =
@@ -23,7 +22,7 @@ object View:
    */
   private class ViewImpl(override val width: Int,
                          override val height: Int,
-                         override val zones: List[Zone],
+                         val zones: List[Zone], //todo: dubbio??? perchè qui non ci va l'override??
                          val viewActor: ActorRef[ViewActorCommand]) extends View:
     val frame: SwingControlPanel = SwingControlPanel(this, zones)
 
@@ -33,8 +32,5 @@ object View:
     override def updateFireStation(fireStation: FireStation): Unit =
       frame.updateFireStation(fireStation)
 
-    override def fixZonePressed(): Unit =
-      viewActor ! FixZone
-
-    override def manageZonePressed(): Unit =
-      viewActor ! ManageZone
+    override def freeZonePressed(zoneId: Int): Unit =
+      viewActor ! FreeZone(zoneId)
