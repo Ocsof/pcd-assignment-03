@@ -3,6 +3,7 @@ package it.unibo.pcd.distributed.view
 import akka.actor.typed.ActorRef
 import akka.actor.typed.receptionist.Receptionist
 import it.unibo.pcd.distributed.behavior.{FreeZone, ViewActorCommand}
+import it.unibo.pcd.distributed.model.ZoneState.ZoneState
 import it.unibo.pcd.distributed.model.{FireStation, Pluviometer, Zone}
 
 
@@ -14,7 +15,7 @@ trait View:
   def viewActors: Set[ActorRef[ViewActorCommand]]
   def viewActors_=(viewActors: Set[ActorRef[ViewActorCommand]]): Unit
   def freeZonePressed(zoneId: Int): Unit
-  def setZoneState(zoneState: ZoneState, zoneId: Int): Unit
+  def setZoneState(zoneId: Int, zoneState: ZoneState): Unit
 
 
 object View:
@@ -46,6 +47,6 @@ object View:
     override def viewActors_=(viewActors: Set[ActorRef[ViewActorCommand]]): Unit =
       this._viewActors = viewActors
 
-    override def setZoneState(zoneState: ZoneState, zoneId: Int): Unit =
-      frame.setZone(zoneState, zoneId)
+    override def setZoneState(zoneId: Int, zoneState: ZoneState): Unit =
+      frame.setZoneState(zoneId, zoneState)
 

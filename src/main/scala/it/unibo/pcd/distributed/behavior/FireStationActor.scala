@@ -24,7 +24,10 @@ object FireStationActor:
           ctx.log.info2("{}: received message {}", ctx.self.path.name, msg)
           msg match
             case AlarmFireStation() =>
-              FireStationActor(FireStation(firestation, ZoneState.Busy))
+              if firestation.zoneId == 3 then
+                Behaviors.stopped
+              else
+                FireStationActor(FireStation(firestation, ZoneState.Busy))
 
             case FreeZoneFirestation() =>
               FireStationActor(FireStation(firestation, ZoneState.Free))

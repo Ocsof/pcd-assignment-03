@@ -62,7 +62,7 @@ object App {
     var port: Int = 25551
     val zones: List[Zone] = generateZones(rows, columns, Boundary(0, 0, width / columns, height / rows))
     val pluviometers: List[Pluviometer] = generatePluviometers(zones)
-    val fireStations: List[FireStation] = generateFireStations(zones.slice(0, 3))
+    val fireStations: List[FireStation] = generateFireStations(zones)
 
     pluviometers.foreach(pluviometer => {
       startup(port = port)(PluviometerGuardian(pluviometer))
@@ -76,7 +76,7 @@ object App {
     })
     println(fireStations.size.toString)
     startup(port = 1200)(ViewGuardian(width, height, zones))
-    startup(port = 1201)(ViewGuardian(width, height, zones))
+    //startup(port = 1201)(ViewGuardian(width, height, zones))
   }
 
   def startup[X](file: String = "cluster", port: Int)(root: => Behavior[X]): ActorSystem[X] =

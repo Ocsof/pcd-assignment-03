@@ -25,7 +25,7 @@ class ViewActor(ctx: ActorContext[ViewActorCommand],
   var pluviometers: Set[Pluviometer] = Set.empty
   val view: View = View(width, height, zones)
   view.viewActors = Set(ctx.self)
-  var firestations: Map[Int, ActorRef[FireStationCommand]] = Map.empty
+  var firestationActors: Map[Int, ActorRef[FireStationCommand]] = Map.empty
 
   ctx.system.receptionist ! Receptionist.Register(viewService, ctx.self)
 
@@ -38,7 +38,7 @@ class ViewActor(ctx: ActorContext[ViewActorCommand],
         view.updatePluviometer(pluviometer)
 
       case FirestationState(fireStation, fireStationActor) => //aggiungi la firestation alla lista e ridisegna la gui
-        firestations = firestations + (fireStation.zoneId -> fireStationActor)
+        firestationActors = firestationActors + (fireStation.zoneId -> fireStationActor)
         view.updateFireStation(fireStation)
 
       case OtherViewList(othersViewActor) =>
@@ -48,21 +48,11 @@ class ViewActor(ctx: ActorContext[ViewActorCommand],
         view.setZoneState(pluviometer.zoneId, ZoneState.Busy)
 
       case FreeZone(zoneId) =>
-        val fireStation = firestations.keys.find(_ == zoneId)
+        val fireStation = firestationActors.keys.find(_ == zoneId)
         if fireStation.isDefined then
-          val actorRef = firestations(fireStation.get) //mando all'actorRef la FreeZone
+          val actorRef = firestationActors(zoneId) //mando all'actorRef la FreeZone
           actorRef ! FreeZoneFirestation()
-        view.setZoneState(ZoneState.Free, zoneId)
+        view.setZoneState(zoneId, ZoneState.Free)
 
-
-
-
-          /*
-          case FreeFirestation(zoneId: Int) => fireStationService(zoneId)
-          case FreeNotifiedByOtherGui() =>
-          case _ =>
-            ctx.log.info("Error")
-            Behaviors.stopped
-          */
       this
 
