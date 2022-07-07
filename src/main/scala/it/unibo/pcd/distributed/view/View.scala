@@ -12,6 +12,8 @@ trait View:
   def updatePluviometer(pluviometer: Pluviometer): Unit
   def updateFireStation(fireStation: FireStation): Unit
   def freeZonePressed(zoneId: Int): Unit
+  def freeFireStationOfZone(zoneId: Int): Unit
+
 
 object View:
   def apply(width: Int, height: Int, zones: List[Zone], viewActor: ActorRef[ViewActorCommand]): View =
@@ -34,3 +36,6 @@ object View:
 
     override def freeZonePressed(zoneId: Int): Unit =
       viewActor ! FreeZone(zoneId)
+
+    override def freeFireStationOfZone(zoneId: Int): Unit =
+      frame.freeFireStationOfZone(zoneId)

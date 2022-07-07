@@ -12,6 +12,7 @@ import scala.swing.{Action, BorderPanel, Button, FlowPanel, Frame, Label, Panel}
 trait SwingControlPanel:
   def updatePluviometer(pluviometer: Pluviometer): Unit
   def updateFireStation(fireStation: FireStation): Unit
+  def freeFireStationOfZone(zoneId: Int): Unit
 
 object SwingControlPanel:
 
@@ -41,10 +42,16 @@ object SwingControlPanel:
       SwingUtilities.invokeLater(() => {
         cityPanel.updateFireStation(fireStation)
         //todo: algoritmo per farsi restituire il button della zona della firestation, questo che ho fatto non credo sia bellino
-        val freeZone: String = "Free Zone " + fireStation.zoneId
+        val freeZone: String = "Free " + fireStation.zoneId
         val button = buttonsPanel.buttons.find(_.text == freeZone).get
         if fireStation.state == ZoneState.Busy then
           button.visible = true
+        repaint()
+      })
+
+    override def freeFireStationOfZone(zoneId: Int): Unit =
+      SwingUtilities.invokeLater(() => {
+        cityPanel.freeFireStationOfZone(zoneId)
         repaint()
       })
 
@@ -62,7 +69,7 @@ sealed class ButtonsPanel(view: View, zones: List[Zone]) extends FlowPanel:
   // li renderemo visibili -> vedi metodo updateFirestation()
   var buttons: List[Button] = List.empty
   zones.foreach(zone => {
-    val buttonText = "Free Zone ".concat(zone.zoneId.toString)
+    val buttonText = "Free ".concat(zone.zoneId.toString)
     val buttonFix: Button = new Button{
       text = buttonText
       visible = false
@@ -95,11 +102,13 @@ sealed class CityPanel(width: Int, height: Int, zones: List[Zone]) extends Panel
         case _ => g2.setColor(java.awt.Color.GREEN)
       g2.fillRect(zone.boundary.x0, zone.boundary.y0, zone.boundary.width, zone.boundary.height)
       g2.setColor(java.awt.Color.BLACK)
-      g2.drawString(s"ZONE ${zone.zoneId}: ${state.toString}", zone.boundary.x0 + 5, zone.boundary.y0 + 15)
+      g2.drawString(s"ZONE ${zone.zoneId}: ${state.get.toString}", zone.boundary.x0 + 5, zone.boundary.y0 + 15)
       g2.drawRect(zone.boundary.x0, zone.boundary.y0, zone.boundary.width, zone.boundary.height)
     })
     g2.setColor(java.awt.Color.BLACK)
-    pluviometers.foreach(pluviometer => g2.fillOval(pluviometer.position.x, pluviometer.position.y, 10, 10))
+    pluviometers.foreach(pluviometer => {
+      g2.fillOval(pluviometer.position.x, pluviometer.position.y, 10, 10)
+    })
     fireStations.foreach(fireStation => {
       g2.fillRect(fireStation.position.x, fireStation.position.y, 10, 10)
       g2.drawString(fireStation.state.toString, fireStation.position.x, fireStation.position.y + 20)
@@ -107,10 +116,17 @@ sealed class CityPanel(width: Int, height: Int, zones: List[Zone]) extends Panel
   end paint
 
   def updatePluviometer(pluviometer: Pluviometer): Unit =
-    if(!pluviometers.contains(pluviometer))
+    if !pluviometers.contains(pluviometer) then
       this.pluviometers = this.pluviometers + pluviometer
-  def updateFireStation(fireStation: FireStation): Unit =
-    if(!fireStations.contains(fireStation))
+  def updateFireStation(fireStation: FireStation): Unit = //togliamo sempre quello vecchio se avrà cambiato di stato e aggiungiamo il nuovo
+    if fireStations.exists(_.position == fireStation.position) then
+      this.fireStations = this.fireStations.filter(_.position != fireStation.position)
     this.fireStations = this.fireStations + fireStation
-
+  def freeFireStationOfZone(zoneId: Int): Unit =
+    val option = this.fireStations.find(_.zoneId == zoneId)
+    option match
+      case Some(fireStation) =>
+        this.fireStations = this.fireStations - fireStation
+        this.fireStations = this.fireStations + FireStation(fireStation, ZoneState.Free)
+      case _ =>
 end CityPanel

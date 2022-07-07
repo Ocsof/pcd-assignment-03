@@ -3,7 +3,7 @@ package it.unibo.pcd.distributed.behavior
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
-import it.unibo.pcd.distributed.model.{FireStation, Pluviometer, Zone}
+import it.unibo.pcd.distributed.model.{FireStation, Pluviometer, Zone, ZoneState}
 import it.unibo.pcd.distributed.view.View
 
 
@@ -38,21 +38,23 @@ class ViewActor(ctx: ActorContext[ViewActorCommand],
         firestations = firestations + (fireStation -> fireStationActor)
         view.updateFireStation(fireStation)
 
-      case AlarmTheView(pluviometer: Pluviometer) => ???
-        /*
+      case AlarmTheView(pluviometer: Pluviometer) => 
         val fireStation = firestations.keys.find(_.zoneId == pluviometer.zoneId).get
-        view.updateFireStation(fireStation)
-        */
-
-      case FreeZone(zoneId) => ???
-      /*
-      {
-        //todo: dubbi sul .head come nell'altro algoritmo per i bottoni
+        val newFireStation = FireStation(fireStation, ZoneState.Busy)
+        val actorRef = firestations(fireStation)
+        firestations = firestations.removed(fireStation)
+        firestations = firestations + (newFireStation -> actorRef)
+        view.updateFireStation(newFireStation)
+        
+      case FreeZone(zoneId) => 
         val fireStation = firestations.keys.find(_.zoneId == zoneId).get
+        val newFireStation = FireStation(fireStation, ZoneState.Free)
         val actorRef = firestations(fireStation) //mando all'actorRef la FreeZone
+        firestations = firestations.removed(fireStation)
+        firestations = firestations + (newFireStation -> actorRef)
+        view.freeFireStationOfZone(zoneId)
         actorRef ! FreeZoneFirestation()
-      }
-      */
+        
           /*
           case FreeFirestation(zoneId: Int) => fireStationService(zoneId)
           case FreeNotifiedByOtherGui() =>
