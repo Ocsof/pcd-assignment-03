@@ -12,7 +12,7 @@ import scala.swing.{Action, BorderPanel, Button, FlowPanel, Frame, Label, Panel}
 trait SwingControlPanel:
   def updatePluviometer(pluviometer: Pluviometer): Unit
   def updateFireStation(fireStation: FireStation): Unit
-  def freeFireStationOfZone(zoneId: Int): Unit
+  def setZoneState(zoneState: ZoneState, zoneId: Int): Unit
 
 object SwingControlPanel:
 
@@ -49,12 +49,12 @@ object SwingControlPanel:
         repaint()
       })
 
-    override def freeFireStationOfZone(zoneId: Int): Unit =
+    override def setZoneState(zoneState: ZoneState, zoneId: Int): Unit =
       SwingUtilities.invokeLater(() => {
-        cityPanel.freeFireStationOfZone(zoneId)
+        cityPanel.setZoneState(zoneState, zoneId)
         val freeZone: String = "Free " + zoneId.toString
         val buttonZone = buttonsPanel.buttons.find(_.text == freeZone).get
-        buttonZone.visible = false
+        buttonZone.visible = zoneState == ZoneState.Busy
         repaint()
       })
 
@@ -125,11 +125,11 @@ sealed class CityPanel(width: Int, height: Int, zones: List[Zone]) extends Panel
     if fireStations.exists(_.position == fireStation.position) then
       this.fireStations = this.fireStations.filter(_.position != fireStation.position)
     this.fireStations = this.fireStations + fireStation
-  def freeFireStationOfZone(zoneId: Int): Unit =
+  def setZoneState(zoneState: ZoneState, zoneId: Int): Unit =
     val option = this.fireStations.find(_.zoneId == zoneId)
     option match
       case Some(fireStation) =>
         this.fireStations = this.fireStations - fireStation
-        this.fireStations = this.fireStations + FireStation(fireStation, ZoneState.Free)
+        this.fireStations = this.fireStations + FireStation(fireStation, zoneState)
       case _ =>
 end CityPanel

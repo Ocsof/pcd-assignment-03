@@ -25,7 +25,7 @@ class ViewActor(ctx: ActorContext[ViewActorCommand],
   var pluviometers: Set[Pluviometer] = Set.empty
   val view: View = View(width, height, zones)
   view.viewActors = Set(ctx.self)
-  var firestations: Map[FireStation, ActorRef[FireStationCommand]] = Map.empty
+  var firestations: Map[Int, ActorRef[FireStationCommand]] = Map.empty
 
   ctx.system.receptionist ! Receptionist.Register(viewService, ctx.self)
 
@@ -38,25 +38,22 @@ class ViewActor(ctx: ActorContext[ViewActorCommand],
         view.updatePluviometer(pluviometer)
 
       case FirestationState(fireStation, fireStationActor) => //aggiungi la firestation alla lista e ridisegna la gui
-        firestations = firestations + (fireStation -> fireStationActor)
+        firestations = firestations + (fireStation.zoneId -> fireStationActor)
         view.updateFireStation(fireStation)
 
       case OtherViewList(othersViewActor) =>
         view.viewActors = othersViewActor + ctx.self
 
       case AlarmTheView(pluviometer: Pluviometer) =>
-        val fireStation = firestations.keys.find(_.zoneId == pluviometer.zoneId).get
-        val newFireStation = FireStation(fireStation, ZoneState.Busy)
-        val actorRef = firestations(fireStation)
-        firestations = firestations.removed(fireStation)
-        firestations = firestations + (newFireStation -> actorRef)
-        view.updateFireStation(newFireStation)
+        view.setZoneState(pluviometer.zoneId, ZoneState.Busy)
 
       case FreeZone(zoneId) =>
-        val fireStation = firestations.keys.find(_.zoneId == zoneId).get
-        val actorRef = firestations(fireStation) //mando all'actorRef la FreeZone
-        view.freeFireStationOfZone(zoneId)
-        actorRef ! FreeZoneFirestation()
+        val fireStation = firestations.keys.find(_ == zoneId)
+        if fireStation.isDefined then
+          val actorRef = firestations(fireStation.get) //mando all'actorRef la FreeZone
+          actorRef ! FreeZoneFirestation()
+        view.setZoneState(ZoneState.Free, zoneId)
+
 
 
 

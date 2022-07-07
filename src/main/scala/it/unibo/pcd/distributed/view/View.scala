@@ -14,7 +14,7 @@ trait View:
   def viewActors: Set[ActorRef[ViewActorCommand]]
   def viewActors_=(viewActors: Set[ActorRef[ViewActorCommand]]): Unit
   def freeZonePressed(zoneId: Int): Unit
-  def freeFireStationOfZone(zoneId: Int): Unit
+  def setZoneState(zoneState: ZoneState, zoneId: Int): Unit
 
 
 object View:
@@ -46,6 +46,6 @@ object View:
     override def viewActors_=(viewActors: Set[ActorRef[ViewActorCommand]]): Unit =
       this._viewActors = viewActors
 
-    override def freeFireStationOfZone(zoneId: Int): Unit =
-      frame.freeFireStationOfZone(zoneId)
+    override def setZoneState(zoneState: ZoneState, zoneId: Int): Unit =
+      frame.setZone(zoneState, zoneId)
 
