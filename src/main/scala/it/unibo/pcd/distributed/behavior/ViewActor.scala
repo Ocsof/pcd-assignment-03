@@ -10,8 +10,10 @@ import it.unibo.pcd.distributed.view.View
 trait ViewActorCommand
 case class PluviometerState(pluviometer: Pluviometer) extends Message with ViewActorCommand
 case class FirestationState(fireStation: FireStation, fireStationActor: ActorRef[FireStationCommand]) extends Message with ViewActorCommand
+case class OtherViewList(listings: Set[ActorRef[ViewActorCommand]]) extends Message with ViewActorCommand
 case class AlarmTheView(pluviometer: Pluviometer) extends Message with ViewActorCommand
 case class FreeZone(zoneId: Int) extends Message with ViewActorCommand
+case class WarnsOtherGuiZoneFree(zoneId: Int) extends Message with ViewActorCommand
 
 val viewService: ServiceKey[ViewActorCommand] = ServiceKey("viewService")
 
@@ -22,6 +24,7 @@ class ViewActor(ctx: ActorContext[ViewActorCommand],
   val view: View = View(width, height, zones, ctx.self)
   //todo: Dubbio??? tenerli Var è necessario? secondo me in questo caso si
   var pluviometers: Set[Pluviometer] = Set.empty
+  var othersViewActor: Set[ActorRef[ViewActorCommand]] = Set.empty
   var firestations: Map[FireStation, ActorRef[FireStationCommand]] = Map.empty
 
   ctx.system.receptionist ! Receptionist.Register(viewService, ctx.self)
@@ -38,23 +41,31 @@ class ViewActor(ctx: ActorContext[ViewActorCommand],
         firestations = firestations + (fireStation -> fireStationActor)
         view.updateFireStation(fireStation)
 
-      case AlarmTheView(pluviometer: Pluviometer) => 
+      case OtherViewList(othersViewActor) =>
+        this.othersViewActor = othersViewActor
+
+      case AlarmTheView(pluviometer: Pluviometer) =>
         val fireStation = firestations.keys.find(_.zoneId == pluviometer.zoneId).get
         val newFireStation = FireStation(fireStation, ZoneState.Busy)
         val actorRef = firestations(fireStation)
         firestations = firestations.removed(fireStation)
         firestations = firestations + (newFireStation -> actorRef)
         view.updateFireStation(newFireStation)
-        
-      case FreeZone(zoneId) => 
+
+      case FreeZone(zoneId) =>
         val fireStation = firestations.keys.find(_.zoneId == zoneId).get
         val newFireStation = FireStation(fireStation, ZoneState.Free)
         val actorRef = firestations(fireStation) //mando all'actorRef la FreeZone
         firestations = firestations.removed(fireStation)
         firestations = firestations + (newFireStation -> actorRef)
-        view.freeFireStationOfZone(zoneId)
         actorRef ! FreeZoneFirestation()
-        
+        this.othersViewActor.foreach(viewActor => {
+          viewActor ! WarnsOtherGuiZoneFree(zoneId)
+        })
+
+      case WarnsOtherGuiZoneFree(zoneId) =>
+        view.freeFireStationOfZone(zoneId)
+
           /*
           case FreeFirestation(zoneId: Int) => fireStationService(zoneId)
           case FreeNotifiedByOtherGui() =>

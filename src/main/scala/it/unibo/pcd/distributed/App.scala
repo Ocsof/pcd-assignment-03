@@ -76,6 +76,7 @@ object App {
     })
     println(fireStations.size.toString)
     startup(port = 1200)(ViewGuardian(width, height, zones))
+    startup(port = 1201)(ViewGuardian(width, height, zones))
   }
 
   def startup[X](file: String = "cluster", port: Int)(root: => Behavior[X]): ActorSystem[X] =
