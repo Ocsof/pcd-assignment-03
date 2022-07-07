@@ -52,6 +52,9 @@ object SwingControlPanel:
     override def freeFireStationOfZone(zoneId: Int): Unit =
       SwingUtilities.invokeLater(() => {
         cityPanel.freeFireStationOfZone(zoneId)
+        val freeZone: String = "Free " + zoneId.toString
+        val buttonZone = buttonsPanel.buttons.find(_.text == freeZone).get
+        buttonZone.visible = false
         repaint()
       })
 
@@ -75,7 +78,6 @@ sealed class ButtonsPanel(view: View, zones: List[Zone]) extends FlowPanel:
       visible = false
       action = new Action(buttonText): //quando liberiamo la zona rendiamo non visibile il bottone
         override def apply(): Unit =
-          visible = false
           view.freeZonePressed(zone.zoneId)
     }
     buttons = buttonFix :: buttons
@@ -96,13 +98,14 @@ sealed class CityPanel(width: Int, height: Int, zones: List[Zone]) extends Panel
     g2.drawRect(0, 0, width - 1, height - 1)
     g2.setColor(java.awt.Color.BLUE)
     zones.foreach(zone => {
-      val state = fireStations.find(_.zoneId == zone.zoneId).map(_.state)
+      val stateOption = fireStations.find(_.zoneId == zone.zoneId).map(_.state)
+      val state = stateOption.getOrElse(ZoneState.Free)
       state match
-        case Some(ZoneState.Busy) => g2.setColor(java.awt.Color.RED)
+        case ZoneState.Busy => g2.setColor(java.awt.Color.RED)
         case _ => g2.setColor(java.awt.Color.GREEN)
       g2.fillRect(zone.boundary.x0, zone.boundary.y0, zone.boundary.width, zone.boundary.height)
       g2.setColor(java.awt.Color.BLACK)
-      g2.drawString(s"ZONE ${zone.zoneId}: ${state.get.toString}", zone.boundary.x0 + 5, zone.boundary.y0 + 15)
+      g2.drawString(s"ZONE ${zone.zoneId}: ${state.toString}", zone.boundary.x0 + 5, zone.boundary.y0 + 15)
       g2.drawRect(zone.boundary.x0, zone.boundary.y0, zone.boundary.width, zone.boundary.height)
     })
     g2.setColor(java.awt.Color.BLACK)

@@ -21,10 +21,10 @@ val viewService: ServiceKey[ViewActorCommand] = ServiceKey("viewService")
 class ViewActor(ctx: ActorContext[ViewActorCommand],
                 width: Int, height: Int, zones: List[Zone]) extends AbstractBehavior(ctx):
 
-  val view: View = View(width, height, zones, ctx.self)
   //todo: Dubbio??? tenerli Var è necessario? secondo me in questo caso si
   var pluviometers: Set[Pluviometer] = Set.empty
-  var othersViewActor: Set[ActorRef[ViewActorCommand]] = Set.empty
+  val view: View = View(width, height, zones)
+  view.viewActors = Set(ctx.self)
   var firestations: Map[FireStation, ActorRef[FireStationCommand]] = Map.empty
 
   ctx.system.receptionist ! Receptionist.Register(viewService, ctx.self)
@@ -42,7 +42,7 @@ class ViewActor(ctx: ActorContext[ViewActorCommand],
         view.updateFireStation(fireStation)
 
       case OtherViewList(othersViewActor) =>
-        this.othersViewActor = othersViewActor
+        view.viewActors = othersViewActor + ctx.self
 
       case AlarmTheView(pluviometer: Pluviometer) =>
         val fireStation = firestations.keys.find(_.zoneId == pluviometer.zoneId).get
@@ -54,17 +54,11 @@ class ViewActor(ctx: ActorContext[ViewActorCommand],
 
       case FreeZone(zoneId) =>
         val fireStation = firestations.keys.find(_.zoneId == zoneId).get
-        val newFireStation = FireStation(fireStation, ZoneState.Free)
         val actorRef = firestations(fireStation) //mando all'actorRef la FreeZone
-        firestations = firestations.removed(fireStation)
-        firestations = firestations + (newFireStation -> actorRef)
-        actorRef ! FreeZoneFirestation()
-        this.othersViewActor.foreach(viewActor => {
-          viewActor ! WarnsOtherGuiZoneFree(zoneId)
-        })
-
-      case WarnsOtherGuiZoneFree(zoneId) =>
         view.freeFireStationOfZone(zoneId)
+        actorRef ! FreeZoneFirestation()
+
+
 
           /*
           case FreeFirestation(zoneId: Int) => fireStationService(zoneId)
