@@ -89,6 +89,7 @@ end ButtonsPanel
 sealed class CityPanel(width: Int, height: Int, zones: List[Zone]) extends Panel:
   var fireStations: Set[FireStation] = Set()
   var pluviometers: Set[Pluviometer] = Set()
+  var cachedAlarms: Set[Int] = Set()
 
   preferredSize = Dimension(width, height)
 
@@ -103,7 +104,7 @@ sealed class CityPanel(width: Int, height: Int, zones: List[Zone]) extends Panel
       val state = stateOption.getOrElse(ZoneState.Free)
       state match
         case ZoneState.Busy => g2.setColor(java.awt.Color.RED)
-        case _ => g2.setColor(java.awt.Color.GREEN)
+        case _ => if cachedAlarms.contains(zone.zoneId) then g2.setColor(java.awt.Color.RED) else g2.setColor(java.awt.Color.GREEN)
       g2.fillRect(zone.boundary.x0, zone.boundary.y0, zone.boundary.width, zone.boundary.height)
       g2.setColor(java.awt.Color.BLACK)
       g2.drawString(s"ZONE ${zone.zoneId}: ${state.toString}", zone.boundary.x0 + 5, zone.boundary.y0 + 15)
@@ -133,4 +134,8 @@ sealed class CityPanel(width: Int, height: Int, zones: List[Zone]) extends Panel
         this.fireStations = this.fireStations - fireStation
         this.fireStations = this.fireStations + FireStation(fireStation, zoneState)
       case _ =>
+    if zoneState == ZoneState.Busy then
+      this.cachedAlarms = this.cachedAlarms + zoneId
+    else
+      this.cachedAlarms = this.cachedAlarms - zoneId
 end CityPanel

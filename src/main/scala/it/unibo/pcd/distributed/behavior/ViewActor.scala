@@ -8,7 +8,7 @@ import it.unibo.pcd.distributed.view.View
 
 
 trait ViewActorCommand
-case class PluviometerState(pluviometer: Pluviometer) extends Message with ViewActorCommand
+case class PluviometerModel(pluviometer: Pluviometer) extends Message with ViewActorCommand
 case class FirestationState(fireStation: FireStation, fireStationActor: ActorRef[FireStationCommand]) extends Message with ViewActorCommand
 case class OtherViewList(listings: Set[ActorRef[ViewActorCommand]]) extends Message with ViewActorCommand
 case class AlarmTheView(pluviometer: Pluviometer) extends Message with ViewActorCommand
@@ -32,7 +32,7 @@ class ViewActor(ctx: ActorContext[ViewActorCommand],
   override def onMessage(msg: ViewActorCommand): Behavior[ViewActorCommand] =
     ctx.log.info("{}: received message {}", ctx.self.path.name, msg)
     msg match
-      case PluviometerState(pluviometer) =>
+      case PluviometerModel(pluviometer) =>
         //aggiungi il pluviometro alla lista e ridisegna la gui
         pluviometers = pluviometers + pluviometer
         view.updatePluviometer(pluviometer)
