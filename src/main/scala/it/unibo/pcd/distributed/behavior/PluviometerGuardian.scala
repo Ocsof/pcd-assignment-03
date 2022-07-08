@@ -37,6 +37,7 @@ object PluviometerGuardian {
 
         case _ => {
           ctx.log.info("Error")
+          ctx.system.terminate()
           Behaviors.stopped
         }
       })

@@ -54,14 +54,19 @@ object PluviometerActor {
 
           msg match
             case Update() =>
-              val newRainLevel = sensorRead
-              if newRainLevel > pluviometer.threshold then // se update > 7 --> allarme
-                zonePluviometers.foreach(pluviometer => ctx.ask(pluviometer, IsRainLevelAboveThresholdRequest.apply){
-                  case Success(IsRainLevelAboveThresholdResponse(pluviometerState)) => IsRainLevelAboveThresholdResponse(pluviometerState)
-                  case _ => IsRainLevelAboveThresholdResponse(Unavailable)
-                })
-              timers.startSingleTimer(Update(), 5000.millis)
-              PluviometerActor(pluviometer, zonePluviometers, zoneFireStations, views, newRainLevel, pluviometersResponses)
+              val randomDeath = sensorRead
+              if(randomDeath < 9.5) then
+                val newRainLevel = sensorRead
+                if newRainLevel > pluviometer.threshold then // se update > 7 --> allarme
+                  zonePluviometers.foreach(pluviometer => ctx.ask(pluviometer, IsRainLevelAboveThresholdRequest.apply){
+                    case Success(IsRainLevelAboveThresholdResponse(pluviometerState)) => IsRainLevelAboveThresholdResponse(pluviometerState)
+                    case _ => IsRainLevelAboveThresholdResponse(Unavailable)
+                  })
+                timers.startSingleTimer(Update(), 5000.millis)
+                PluviometerActor(pluviometer, zonePluviometers, zoneFireStations, views, newRainLevel, pluviometersResponses)
+              else
+                println("Death actor zone id: " + pluviometer.zoneId)
+                UnreachablePluviometerActor(pluviometer, zonePluviometers, zoneFireStations, views, rainLevel, pluviometersResponses)
 
             case IsRainLevelAboveThresholdRequest(otherSensor) =>
               otherSensor ! IsRainLevelAboveThresholdResponse(if rainLevel > pluviometer.threshold then AboveThreshold else BelowThreshold)
@@ -104,27 +109,49 @@ object PluviometerActor {
       })
 
     })
+}
 
 /*
-    private def UnreachablePluviometer(pluviometer: Pluviometer,
-              zonePluviometers: Set[ActorRef[PluviometerCommand]],
-              zoneFireStations: Set[ActorRef[FireStationCommand]],
-              views: Set[ActorRef[ViewActorCommand]],
-              rainLevel: Double,
-              pluviometersResponses: List[PluviometerState]): Behavior[PluviometerCommand] =
-      Behaviors.setup[PluviometerCommand](ctx => {
-        Behaviors.withTimers(timers => {
-          timer.startSingleTimer(HealPluviometer(), 30.seconds)
-          Behaviors.receiveMessage(msg => {
+object UnreachablePluviometer:
+  def apply(pluviometer: Pluviometer,
+            zonePluviometers: Set[ActorRef[PluviometerCommand]],
+            zoneFireStations: Set[ActorRef[FireStationCommand]],
+            views: Set[ActorRef[ViewActorCommand]],
+            rainLevel: Double,
+            pluviometersResponses: List[PluviometerState]): Behavior[PluviometerCommand] =
+    Behaviors.setup[PluviometerCommand](ctx => {
+      Behaviors.withTimers(timers => {
+        timers.startSingleTimer(HealPluviometer(), 30.seconds)
+        Behaviors.receiveMessage(msg => {
+          case HealPluviometer() =>
+            ctx.log.info("Pluviometer: " + pluviometer.position.x + "," + pluviometer.position.y + " healed")
+            PluviometerActor(pluviometer, zonePluviometers, zoneFireStations, views, rainLevel, pluviometersResponses)
 
-            case HealPluviometer() =>
-              ctx.log.info("Pluviometer: " + pluviometer.position.x + "," + pluviometer.position.y + " healed")
+          case _ => Behaviors.same
+        })
+      })
+    })
+*/
+object UnreachablePluviometerActor {
+
+  def apply(pluviometer: Pluviometer,
+            zonePluviometers: Set[ActorRef[PluviometerCommand]],
+            zoneFireStations: Set[ActorRef[FireStationCommand]],
+            views: Set[ActorRef[ViewActorCommand]],
+            rainLevel: Double,
+            pluviometersResponses: List[PluviometerState]): Behavior[PluviometerCommand] =
+    Behaviors.setup[PluviometerCommand](ctx => {
+      Behaviors.withTimers(timers => {
+        timers.startSingleTimer(HealPluviometer(), 30.seconds)
+        Behaviors.receiveMessage ( msg => {
+          ctx.log.info2("{}: received message {}", ctx.self.path.name, msg)
+          msg match
+            case HealPluviometer() => //invio alla view che si è registrata il mio stato
+
               PluviometerActor(pluviometer, zonePluviometers, zoneFireStations, views, rainLevel, pluviometersResponses)
 
             case _ => Behaviors.same
-          })
         })
       })
-*/
+    })
 }
-

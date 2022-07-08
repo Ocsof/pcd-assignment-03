@@ -6,6 +6,7 @@ import scala.util.Random
 import com.typesafe.config.{Config, ConfigFactory}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Behavior}
+import akka.stream.impl.FanIn.OnComplete
 import it.unibo.pcd.distributed.model.ZoneState.Free
 import it.unibo.pcd.distributed.behavior.{FireStationActor, FireStationGuardian, PluviometerActor, PluviometerGuardian, Update, ViewActor, ViewGuardian}
 import it.unibo.pcd.distributed.model.FireStation
@@ -80,11 +81,31 @@ object App {
     startup(port = 1201)(ViewGuardian(width, height, zones))
   }
 
+  @main
+  def main2(): Unit = {
+    val rows = 2
+    val columns = 2
+    val width = columns * 200
+    val height = rows * 200
+    var port: Int = 25551
+    val zones: List[Zone] = generateZones(rows, columns, Boundary(0, 0, width / columns, height / rows))
+
+    startup(port = 1202)(ViewGuardian(width, height, zones))
+  }
+
   def startup[X](file: String = "cluster", port: Int)(root: => Behavior[X]): ActorSystem[X] =
     // Override the configuration of the port
     val config: Config = ConfigFactory
       .parseString(s"""akka.remote.artery.canonical.port=$port""")
       .withFallback(ConfigFactory.load(file))
     // Create an Akka system
-    ActorSystem(root, "ClusterSystem", config)
+    val as = ActorSystem(root, "ClusterSystem", config)
+    as.whenTerminated onComplete {
+      case Success() =>
+        println("Death actor")
+      case Failure(t) => println("An error has occurred: " + t.getMessage)
+    }
+
+
 }
+
