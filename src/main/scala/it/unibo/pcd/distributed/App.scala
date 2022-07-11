@@ -2,15 +2,14 @@ package it.unibo.pcd.distributed
 
 import it.unibo.pcd.distributed.model.*
 
-import scala.util.Random
+import scala.util.{Failure, Random, Success}
 import com.typesafe.config.{Config, ConfigFactory}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Behavior}
-import akka.stream.impl.FanIn.OnComplete
 import it.unibo.pcd.distributed.model.ZoneState.Free
 import it.unibo.pcd.distributed.behavior.{FireStationActor, FireStationGuardian, PluviometerActor, PluviometerGuardian, Update, ViewActor, ViewGuardian}
 import it.unibo.pcd.distributed.model.FireStation
-
+import concurrent.ExecutionContext.Implicits.global
 
 object App {
 
@@ -66,23 +65,24 @@ object App {
     val pluviometers: List[Pluviometer] = generatePluviometers(zones)
     val fireStations: List[FireStation] = generateFireStations(zones.slice(0, 3))
 
+    fireStations.foreach(fireStation => {
+      startup(port = port)(FireStationGuardian(fireStation))
+      port = port + 1
+    })
+
     pluviometers.foreach(pluviometer => {
       startup(port = port)(PluviometerGuardian(pluviometer))
       port = port + 1
     })
     println(pluviometers.size.toString)
 
-    fireStations.foreach(fireStation => {
-      startup(port = port)(FireStationGuardian(fireStation))
-      port = port + 1
-    })
     println(fireStations.size.toString)
-    startup(port = 1200)(ViewGuardian(width, height, zones))
-    startup(port = 1201)(ViewGuardian(width, height, zones))
+    //startup(port = 1200)(ViewGuardian(width, height, zones))
+    //startup(port = 1201)(ViewGuardian(width, height, zones))
   }
 
   @main
-  def main2(): Unit = {
+  def mainAsynchronousGuiStartup(): Unit = {
     val rows = 2
     val columns = 2
     val width = columns * 200
@@ -101,10 +101,13 @@ object App {
     // Create an Akka system
     val as = ActorSystem(root, "ClusterSystem", config)
     as.whenTerminated onComplete {
-      case Success() =>
+      case Success(done) =>
         println("Death actor")
+        Thread.sleep(10000)
+        startup(file, port)(root)
       case Failure(t) => println("An error has occurred: " + t.getMessage)
     }
+    as
 
 
 }
