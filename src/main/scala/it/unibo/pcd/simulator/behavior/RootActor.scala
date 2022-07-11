@@ -21,15 +21,23 @@ import it.unibo.pcd.simulator.behavior.ViewActor.ViewActorCommand.*
       case ComputePositionResponse(body: Body)
     export RootActorCommand.*
     
-    def apply(simulation: Simulation, withGui: Boolean): Behavior[RootActorCommand] =
-    Behaviors.setup(new RootActor(_, simulation, withGui))
+    def apply(simulation: Simulation, withGui: Boolean,
+              responseCounter: Int,
+              vt: Double,
+              bodyActors: mutable.Seq[ActorRef[BodyActorCommand]],
+              view: Option[ActorRef[ViewActorCommand]],
+              startTime: Long): Behavior[RootActorCommand] =
+    Behaviors.setup(new RootActor(_, simulation, withGui, responseCounter, vt, bodyActors, view, startTime))
 
-  class RootActor(context: ActorContext[RootActor.RootActorCommand], val simulation: Simulation, val withGui: Boolean)
+  class RootActor(context: ActorContext[RootActor.RootActorCommand],
+                  val simulation: Simulation, val withGui: Boolean,
+                  var responseCounter: Int,
+                  var vt: Double,
+                  var bodyActors: mutable.Seq[ActorRef[BodyActorCommand]],
+                  var view: Option[ActorRef[ViewActorCommand]],
+                  val startTime: Long)
     extends AbstractBehavior[RootActor.RootActorCommand](context):
-    var responseCounter = 0
-    var vt = 0.0
-    var bodyActors: mutable.Seq[ActorRef[BodyActorCommand]] = mutable.Seq.empty
-    var view: Option[ActorRef[ViewActorCommand]] = None
+
     override def onMessage(msg: RootActor.RootActorCommand): Behavior[RootActor.RootActorCommand] = msg match {
       case StartSimulation =>
         import RootActor.*
@@ -42,7 +50,7 @@ import it.unibo.pcd.simulator.behavior.ViewActor.ViewActorCommand.*
         this
 
       case StopSimulation =>
-        this.onPause(simulation, withGui)
+        this.onPause(simulation, withGui, responseCounter, vt, bodyActors, view, startTime)
 
       case ComputeVelocityResponse(result) =>
         import RootActor.*
@@ -64,12 +72,20 @@ import it.unibo.pcd.simulator.behavior.ViewActor.ViewActorCommand.*
             simulation.iteration = simulation.iteration - 1
             bodyActors.foreach(y => y ! ComputeVelocityRequest(simulation.bodies, context.self))
             this
-          else Behaviors.stopped
+          else
+            val getTime = System.currentTimeMillis() - startTime
+            println(getTime)
+            Behaviors.stopped
         else this
       case _ => this
     }
 
-    def onPause(simulation: Simulation, gui: Boolean): Behavior[RootActor.RootActorCommand] =
+    def onPause(simulation: Simulation, gui: Boolean,
+                responseCounter: Int,
+                vt: Double,
+                bodyActors: mutable.Seq[ActorRef[BodyActorCommand]],
+                view: Option[ActorRef[ViewActorCommand]],
+                startTime: Long): Behavior[RootActor.RootActorCommand] =
       import RootActor.RootActorCommand
       import RootActor.RootActorCommand.*
       System.out.println("Stop1")
@@ -78,7 +94,7 @@ import it.unibo.pcd.simulator.behavior.ViewActor.ViewActorCommand.*
           Behaviors.receiveMessage{
             case ResumeSimulation =>
               System.out.println("Resume")
-              stash.unstashAll(RootActor(simulation, gui))
+              stash.unstashAll(RootActor(simulation, gui, responseCounter, vt, bodyActors, view, startTime))
             case StopSimulation =>
               System.out.println("Stop2")
               Behaviors.same
