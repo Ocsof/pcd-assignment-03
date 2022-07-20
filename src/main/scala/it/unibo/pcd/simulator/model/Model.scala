@@ -31,10 +31,6 @@ object model:
     def updatePosition(deltaTime: Double): Unit = pos = pos.sum(vel.scalarMul(deltaTime))
     def updateVelocity(acc: Point2D, dt: Double): Unit = this.vel = this.vel sum (acc scalarMul dt)
     def frictionForce: Point2D = vel scalarMul (-FRICTION_K)
-    def getDistanceFrom(body: Body): Double =
-      val deltaX: Double = pos.x - body.pos.x
-      val deltaY: Double = pos.y - body.pos.y
-      Math.sqrt(deltaX * deltaX + deltaY * deltaY)
     def repulsiveForceBy(b: Body): Point2D =
       distance(this)(b) match
       case dist if dist > 0 => Point2D(pos.x - b.pos.x, pos.y - b.pos.y).

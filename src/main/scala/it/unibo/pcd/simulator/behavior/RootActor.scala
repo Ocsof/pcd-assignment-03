@@ -2,12 +2,12 @@ package it.unibo.pcd.simulator.behavior
 
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import scala.collection.mutable
 
+import scala.collection.mutable
 import it.unibo.pcd.simulator.model.model.{Body, Boundary, Simulation}
 import it.unibo.pcd.simulator.behavior.BodyActor.BodyActorCommand
 import it.unibo.pcd.simulator.behavior.BodyActor.BodyActorCommand.*
-import it.unibo.pcd.simulator.behavior.RootActor.RootActorCommand.{StartSimulation, StopSimulation, ComputePositionResponse, ComputeVelocityResponse}
+import it.unibo.pcd.simulator.behavior.RootActor.RootActorCommand.{ComputePositionResponse, ComputeVelocityResponse, PauseSimulation, StartSimulation}
 import it.unibo.pcd.simulator.behavior.ViewActor.ViewActorCommand
 import it.unibo.pcd.simulator.behavior.ViewActor.ViewActorCommand.*
 
@@ -15,7 +15,7 @@ import it.unibo.pcd.simulator.behavior.ViewActor.ViewActorCommand.*
   object RootActor:
     enum RootActorCommand:
       case StartSimulation   //quando starta all'inizio l'applicativo
-      case StopSimulation
+      case PauseSimulation
       case ResumeSimulation
       case ComputeVelocityResponse(body: Body)
       case ComputePositionResponse(body: Body)
@@ -49,7 +49,7 @@ import it.unibo.pcd.simulator.behavior.ViewActor.ViewActorCommand.*
           bodyActor ! ComputeVelocityRequest(simulation.bodies, context.self)
         this
 
-      case StopSimulation =>
+      case PauseSimulation =>
         this.onPause(simulation, withGui, responseCounter, vt, bodyActors, view, startTime)
 
       case ComputeVelocityResponse(result) =>
@@ -88,15 +88,14 @@ import it.unibo.pcd.simulator.behavior.ViewActor.ViewActorCommand.*
                 startTime: Long): Behavior[RootActor.RootActorCommand] =
       import RootActor.RootActorCommand
       import RootActor.RootActorCommand.*
-      System.out.println("Stop1")
       Behaviors.setup( ctx => {
         Behaviors.withStash[RootActorCommand](10000){ stash =>
           Behaviors.receiveMessage{
             case ResumeSimulation =>
               System.out.println("Resume")
               stash.unstashAll(RootActor(simulation, gui, responseCounter, vt, bodyActors, view, startTime))
-            case StopSimulation =>
-              System.out.println("Stop2")
+            case PauseSimulation =>
+              System.out.println("Pause")
               Behaviors.same
             case other =>
               stash.stash(other)
