@@ -63,7 +63,7 @@ object App {
     var port: Int = 25551
     val zones: List[Zone] = generateZones(rows, columns, Boundary(0, 0, width / columns, height / rows))
     val pluviometers: List[Pluviometer] = generatePluviometers(zones)
-    val fireStations: List[FireStation] = generateFireStations(zones.slice(0, 3))
+    val fireStations: List[FireStation] = generateFireStations(zones)
 
     fireStations.foreach(fireStation => {
       startup(port = port)(FireStationGuardian(fireStation))
@@ -77,7 +77,7 @@ object App {
     println(pluviometers.size.toString)
 
     println(fireStations.size.toString)
-    //startup(port = 1200)(ViewGuardian(width, height, zones))
+    startup(port = 1200)(ViewGuardian(width, height, zones))
     //startup(port = 1201)(ViewGuardian(width, height, zones))
   }
 
@@ -87,7 +87,6 @@ object App {
     val columns = 2
     val width = columns * 200
     val height = rows * 200
-    var port: Int = 25551
     val zones: List[Zone] = generateZones(rows, columns, Boundary(0, 0, width / columns, height / rows))
 
     startup(port = 1202)(ViewGuardian(width, height, zones))
@@ -102,7 +101,7 @@ object App {
     val as = ActorSystem(root, "ClusterSystem", config)
     as.whenTerminated onComplete {
       case Success(done) =>
-        println("Death actor")
+        println(if port == 25555 then "Death pluviometer" else "Death firestation")
         Thread.sleep(10000)
         startup(file, port)(root)
       case Failure(t) => println("An error has occurred: " + t.getMessage)

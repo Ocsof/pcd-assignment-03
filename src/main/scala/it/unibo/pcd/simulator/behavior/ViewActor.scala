@@ -27,5 +27,5 @@ import it.unibo.pcd.simulator.model.model.{Body, Boundary}
       case UpdateGUI(bodies, vt, iteration, bounds) =>
         view.display(bodies, vt, iteration, bounds)
         Behaviors.same
-      case _ => Behaviors.same //todo: che fare se ti arriva un'altro messaggio?
+      case _ => Behaviors.same
     }

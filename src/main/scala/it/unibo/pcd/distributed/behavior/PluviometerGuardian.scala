@@ -40,11 +40,11 @@ object PluviometerGuardian {
             pluviometerActor ! ViewList(listings)
             Behaviors.same
 
-          case Terminate() => {
+          case Terminate() => 
             ctx.log.info("Error")
             ctx.system.terminate()
             Behaviors.stopped
-          }
+          
         })
       })
     }.narrow

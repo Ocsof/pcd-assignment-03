@@ -23,6 +23,5 @@ object ViewGuardian {
             ctx.log.info("Error")
             Behaviors.stopped
       })
-      //todo come gestire sta cosa che deve tornare un behavior -> il suo compito è solamente
     }.narrow
 }

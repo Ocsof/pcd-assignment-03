@@ -27,5 +27,5 @@ import it.unibo.pcd.simulator.behavior.RootActor.RootActorCommand.*
         body.computeBodyPosition(boundary)
         ref ! ComputePositionResponse(body)
         Behaviors.same
-      case _ => Behaviors.same //todo: che fare se ti arriva un'altro messaggio?
+      case _ => Behaviors.same
     }

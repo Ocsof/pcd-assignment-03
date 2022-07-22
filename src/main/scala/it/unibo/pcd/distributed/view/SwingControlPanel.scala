@@ -42,8 +42,8 @@ object SwingControlPanel:
     override def updateFireStation(fireStation: FireStation): Unit =
       SwingUtilities.invokeLater(() => {
         cityPanel.updateFireStation(fireStation)
-        //todo: algoritmo per farsi restituire il button della zona della firestation, questo che ho fatto non credo sia bellino
         val freeZone: String = "Free " + fireStation.zoneId
+        // Se il button non esiste, c'è un errore nel messaggio arrivato (zone id inesistente)
         val button = buttonsPanel.buttons.find(_.text == freeZone).get
         if fireStation.state == ZoneState.Busy then
           button.visible = true
@@ -101,10 +101,15 @@ sealed class CityPanel(width: Int, height: Int, zones: List[Zone]) extends Panel
     g2.setColor(java.awt.Color.BLUE)
     zones.foreach(zone => {
       val stateOption = fireStations.find(_.zoneId == zone.zoneId).map(_.state)
-      val state = stateOption.getOrElse(ZoneState.Free)
+      var state = stateOption.getOrElse(ZoneState.Free)
       state match
         case ZoneState.Busy => g2.setColor(java.awt.Color.RED)
-        case _ => if cachedAlarms.contains(zone.zoneId) then g2.setColor(java.awt.Color.RED) else g2.setColor(java.awt.Color.GREEN)
+        case _ =>
+          if cachedAlarms.contains(zone.zoneId) then
+            state = ZoneState.Busy
+            g2.setColor(java.awt.Color.RED)
+          else
+            g2.setColor(java.awt.Color.GREEN)
       g2.fillRect(zone.boundary.x0, zone.boundary.y0, zone.boundary.width, zone.boundary.height)
       g2.setColor(java.awt.Color.BLACK)
       g2.drawString(s"ZONE ${zone.zoneId}: ${state.toString}", zone.boundary.x0 + 5, zone.boundary.y0 + 15)

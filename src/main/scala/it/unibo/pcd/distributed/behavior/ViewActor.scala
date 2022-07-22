@@ -20,8 +20,6 @@ val viewService: ServiceKey[ViewActorCommand] = ServiceKey("viewService")
 
 class ViewActor(ctx: ActorContext[ViewActorCommand],
                 width: Int, height: Int, zones: List[Zone]) extends AbstractBehavior(ctx):
-
-  //todo: Dubbio??? tenerli Var è necessario? secondo me in questo caso si
   var pluviometers: Set[Pluviometer] = Set.empty
   val view: View = View(width, height, zones)
   view.viewActors = Set(ctx.self)
